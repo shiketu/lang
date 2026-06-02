@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 import { compareExpressions } from "@/features/practice/application/service";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
   const { original, userInput, meaning, context } = await request.json();
 
   if (!original || !userInput || !meaning) {

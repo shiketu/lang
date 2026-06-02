@@ -4,8 +4,12 @@ import {
   setCompletion,
   removeCompletion,
 } from "@/features/todos/application/service";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
   const date = request.nextUrl.searchParams.get("date");
   if (!date) {
     return Response.json({ error: "date is required" }, { status: 400 });
@@ -15,6 +19,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
   const { date, taskId, status } = await request.json();
   if (!date || !taskId || !status) {
     return Response.json(

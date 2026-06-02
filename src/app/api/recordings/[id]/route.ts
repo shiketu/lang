@@ -1,10 +1,14 @@
 import { NextRequest } from "next/server";
 import { getRecordingBlob } from "@/features/recordings/application/service";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const result = await getRecordingBlob(id);
 
