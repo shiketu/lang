@@ -30,7 +30,7 @@ export default function RootLayout({
         lang="ja"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full flex">
+        <body className="h-screen flex overflow-hidden">
           <Show when="signed-in">
             <Nav />
           </Show>
