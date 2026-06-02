@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import { NAV_ITEMS } from "@/lib/nav";
 
 export default function Nav() {
@@ -36,6 +37,9 @@ export default function Nav() {
           );
         })}
       </ul>
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <UserButton showName />
+      </div>
     </nav>
   );
 }

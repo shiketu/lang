@@ -1,14 +1,19 @@
 import { MarkdownEntryRepository } from "@/features/entries/infrastructure/entryRepository.markdown";
+import { PostgresEntryRepository } from "@/features/entries/infrastructure/entryRepository.postgres";
 import { MarkdownNoteRepository } from "@/features/notes/infrastructure/noteRepository.markdown";
+import { PostgresNoteRepository } from "@/features/notes/infrastructure/noteRepository.postgres";
 import { JsonTaskRepository } from "@/features/todos/infrastructure/taskRepository.json";
+import { PostgresTaskRepository } from "@/features/todos/infrastructure/taskRepository.postgres";
 import { LocalBlobStorage } from "@/lib/storage/localBlobStorage";
 import { JsonMetadataStore } from "@/lib/storage/jsonMetadataStore";
 import { LocalRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.local";
+import { PostgresRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.postgres";
 import { AnthropicProvider } from "@/lib/llm/anthropic";
 import type { EntryRepository } from "@/features/entries/domain/EntryRepository";
 import type { NoteRepository } from "@/features/notes/domain/NoteRepository";
 import type { TaskRepository } from "@/features/todos/domain/TaskRepository";
 import type { RecordingRepository } from "@/features/recordings/domain/RecordingRepository";
+import type { BlobStorageProvider } from "@/lib/storage/interfaces";
 import type { LLMProvider } from "@/lib/llm/interfaces";
 import type { Recording } from "@/features/recordings/domain/Recording";
 import type {
@@ -28,6 +33,8 @@ export function createEntryRepository(config: EntryStorageConfig): EntryReposito
         typeDirs: config.typeDirs,
         fallbackDir: config.fallbackDir,
       });
+    case "postgres":
+      return new PostgresEntryRepository();
   }
 }
 
@@ -35,6 +42,8 @@ export function createNoteRepository(config: NoteStorageConfig): NoteRepository 
   switch (config.provider) {
     case "markdown":
       return new MarkdownNoteRepository(config.dir);
+    case "postgres":
+      return new PostgresNoteRepository();
   }
 }
 
@@ -42,11 +51,16 @@ export function createTaskRepository(config: TaskStorageConfig): TaskRepository 
   switch (config.provider) {
     case "json-file":
       return new JsonTaskRepository(config.filePath);
+    case "postgres":
+      return new PostgresTaskRepository();
   }
 }
 
 export function createRecordingRepository(config: AppConfig): RecordingRepository {
   const blobStorage = createBlobStorage(config.blob);
+  if (config.recordingMeta.provider === "postgres") {
+    return new PostgresRecordingRepository(blobStorage);
+  }
   const metadataStore = createMetadataStore<Recording>(config.recordingMeta);
   return new LocalRecordingRepository(blobStorage, metadataStore);
 }
@@ -60,7 +74,7 @@ export function createLLM(config: LLMConfig): LLMProvider {
   }
 }
 
-function createBlobStorage(config: BlobStorageConfig) {
+function createBlobStorage(config: BlobStorageConfig): BlobStorageProvider {
   switch (config.provider) {
     case "local":
       return new LocalBlobStorage(config.baseDir, config.urlPrefix);
@@ -75,5 +89,7 @@ function createMetadataStore<T extends { id: string }>(config: MetadataStoreConf
       return new JsonMetadataStore<T>(config.filePath);
     case "s3-json":
       throw new Error("S3 metadata store not yet implemented");
+    case "postgres":
+      throw new Error("Postgres metadata store handled by PostgresRecordingRepository");
   }
 }
