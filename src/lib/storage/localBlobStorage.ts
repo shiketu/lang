@@ -57,4 +57,9 @@ export class LocalBlobStorage implements BlobStorageProvider {
   getUrl(key: string): string {
     return `${this.urlPrefix}/${key}`;
   }
+
+  // Local disk can't sign URLs — callers fall back to streaming via get().
+  async createSignedUrl(): Promise<string | null> {
+    return null;
+  }
 }

@@ -5,6 +5,7 @@ import { PostgresNoteRepository } from "@/features/notes/infrastructure/noteRepo
 import { JsonTaskRepository } from "@/features/todos/infrastructure/taskRepository.json";
 import { PostgresTaskRepository } from "@/features/todos/infrastructure/taskRepository.postgres";
 import { LocalBlobStorage } from "@/lib/storage/localBlobStorage";
+import { S3BlobStorage } from "@/lib/storage/s3BlobStorage";
 import { JsonMetadataStore } from "@/lib/storage/jsonMetadataStore";
 import { LocalRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.local";
 import { PostgresRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.postgres";
@@ -79,7 +80,7 @@ function createBlobStorage(config: BlobStorageConfig): BlobStorageProvider {
     case "local":
       return new LocalBlobStorage(config.baseDir, config.urlPrefix);
     case "s3":
-      throw new Error("S3 blob storage not yet implemented");
+      return new S3BlobStorage(config.bucket, config.region, config.prefix);
   }
 }
 

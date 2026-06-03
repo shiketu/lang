@@ -7,12 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:migrate-data": "tsx scripts/migrate-to-db.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
+    "@aws-sdk/client-s3": "^3.1058.0",
+    "@aws-sdk/s3-request-presigner": "^3.1058.0",
     "@clerk/nextjs": "^7.4.2",
     "@tailwindcss/typography": "^0.5.19",
     "drizzle-orm": "^0.45.2",

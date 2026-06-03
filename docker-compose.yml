@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    ports:
+      # Localhost only — for running migrations via an SSH tunnel. Not public.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -11,6 +30,9 @@ services:
       - ./recordings:/app/recordings
     expose:
       - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -18,3 +40,6 @@ services:
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     depends_on:
       - app
+
+volumes:
+  pgdata:

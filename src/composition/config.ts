@@ -62,7 +62,8 @@ export function resolveConfig(): AppConfig {
   // When DATABASE_URL is set, structured data goes to Postgres.
   // Otherwise fall back to local file-based storage (offline dev).
   const usePostgres = !!process.env.DATABASE_URL;
-  const blobProvider = process.env.BLOB_PROVIDER ?? "local";
+  // Use S3 when explicitly requested or when a bucket is configured.
+  const useS3 = process.env.BLOB_PROVIDER === "s3" || !!process.env.S3_BUCKET;
   const llmProvider = process.env.LLM_PROVIDER ?? "anthropic";
 
   const entries: EntryStorageConfig = usePostgres
@@ -85,20 +86,19 @@ export function resolveConfig(): AppConfig {
     ? { provider: "postgres" }
     : { provider: "json-file", filePath: path.join(CONTENT_DIR, "todos.json") };
 
-  // Video files always live in blob storage (local disk by default).
-  const blob: BlobStorageConfig =
-    blobProvider === "s3"
-      ? {
-          provider: "s3",
-          bucket: process.env.S3_BUCKET!,
-          region: process.env.S3_REGION ?? "ap-northeast-1",
-          prefix: process.env.S3_PREFIX,
-        }
-      : {
-          provider: "local",
-          baseDir: RECORDINGS_DIR,
-          urlPrefix: "/api/recordings/file",
-        };
+  // Video files live in blob storage: S3 in production, local disk for offline dev.
+  const blob: BlobStorageConfig = useS3
+    ? {
+        provider: "s3",
+        bucket: process.env.S3_BUCKET!,
+        region: process.env.AWS_REGION ?? "ap-northeast-1",
+        prefix: process.env.S3_PREFIX ?? "videos",
+      }
+    : {
+        provider: "local",
+        baseDir: RECORDINGS_DIR,
+        urlPrefix: "/api/recordings/file",
+      };
 
   const recordingMeta: MetadataStoreConfig = usePostgres
     ? { provider: "postgres" }

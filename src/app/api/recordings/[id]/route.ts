@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { getRecordingBlob } from "@/features/recordings/application/service";
+import {
+  getRecordingBlob,
+  getRecordingSignedUrl,
+} from "@/features/recordings/application/service";
 import { requireAuth } from "@/lib/auth";
 
 export async function GET(
@@ -10,6 +13,15 @@ export async function GET(
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
+
+  // Prefer a presigned URL (S3): the browser fetches directly from the CDN,
+  // supporting range requests / seeking and offloading bandwidth.
+  const signedUrl = await getRecordingSignedUrl(id);
+  if (signedUrl) {
+    return Response.redirect(signedUrl, 307);
+  }
+
+  // Fallback (local disk): stream the blob through the server.
   const result = await getRecordingBlob(id);
 
   if (!result) {

@@ -81,6 +81,12 @@ export class PostgresRecordingRepository implements RecordingRepository {
     return this.blobStorage.get(meta.filename);
   }
 
+  async getSignedUrl(id: string): Promise<string | null> {
+    const meta = await this.get(id);
+    if (!meta) return null;
+    return this.blobStorage.createSignedUrl(meta.filename, 3600);
+  }
+
   async delete(id: string): Promise<boolean> {
     const meta = await this.get(id);
     if (!meta) return false;

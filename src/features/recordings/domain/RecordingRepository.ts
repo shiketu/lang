@@ -10,5 +10,10 @@ export interface RecordingRepository {
   getBlob(
     id: string
   ): Promise<{ data: Buffer; contentType: string } | null>;
+  /**
+   * Time-limited URL for the client to fetch the video directly (e.g. S3
+   * presigned URL). Returns null when the backend can't sign (local disk).
+   */
+  getSignedUrl(id: string): Promise<string | null>;
   delete(id: string): Promise<boolean>;
 }

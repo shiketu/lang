@@ -20,6 +20,10 @@ export function getRecordingBlob(id: string) {
   return recordingRepository.getBlob(id);
 }
 
+export function getRecordingSignedUrl(id: string): Promise<string | null> {
+  return recordingRepository.getSignedUrl(id);
+}
+
 export function deleteRecording(id: string): Promise<boolean> {
   return recordingRepository.delete(id);
 }
