@@ -1,5 +1,5 @@
 import type { MarkdownDoc } from "@/lib/storage/markdown";
-import type { Entry, EntryType } from "../domain/Entry";
+import type { Entry, EntryType, Purpose, Register } from "../domain/Entry";
 
 export function toEntry(doc: MarkdownDoc): Entry {
   const fm = doc.frontmatter;
@@ -8,12 +8,12 @@ export function toEntry(doc: MarkdownDoc): Entry {
     type: (["vocabulary", "expression", "sentence"].includes(fm.type as string)
       ? fm.type
       : "vocabulary") as EntryType,
+    purpose: fm.purpose != null ? (fm.purpose as Purpose) : undefined,
+    register: fm.register != null ? (fm.register as Register) : undefined,
     japanese: String(fm.japanese ?? ""),
     reading: fm.reading != null ? String(fm.reading) : undefined,
     meaning: String(fm.meaning ?? ""),
     tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
-    source: fm.source != null ? String(fm.source) : undefined,
-    level: fm.level as Entry["level"],
     created: String(fm.created ?? ""),
     updated: String(fm.updated ?? ""),
     content: doc.content,
@@ -31,7 +31,7 @@ export function toFrontmatter(entry: Entry): Record<string, unknown> {
     updated: entry.updated,
   };
   if (entry.reading != null) fm.reading = entry.reading;
-  if (entry.source != null) fm.source = entry.source;
-  if (entry.level != null) fm.level = entry.level;
+  if (entry.purpose != null) fm.purpose = entry.purpose;
+  if (entry.register != null) fm.register = entry.register;
   return fm;
 }

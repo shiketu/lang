@@ -6,17 +6,21 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import type { TaskSchedule, TaskStatus } from "@/features/todos/domain/Task";
-import type { EntryType, Level } from "@/features/entries/domain/Entry";
+import type {
+  EntryType,
+  Purpose,
+  Register,
+} from "@/features/entries/domain/Entry";
 
 export const entries = pgTable("entries", {
   id: text("id").primaryKey(),
   type: text("type").$type<EntryType>().notNull(),
+  purpose: text("purpose").$type<Purpose>(),
+  register: text("register").$type<Register>(),
   japanese: text("japanese").notNull(),
   reading: text("reading"),
   meaning: text("meaning").notNull(),
   tags: text("tags").array().notNull().default([]),
-  source: text("source"),
-  level: text("level").$type<Level>(),
   content: text("content").notNull().default(""),
   created: text("created").notNull(),
   updated: text("updated").notNull(),

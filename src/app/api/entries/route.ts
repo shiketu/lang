@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { listEntries, createEntry } from "@/features/entries/application/service";
-import type { EntryType } from "@/features/entries/domain/Entry";
+import type { EntryType, Purpose, Register } from "@/features/entries/domain/Entry";
 import { requireAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -9,11 +9,15 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = request.nextUrl;
   const type = searchParams.get("type") as EntryType | null;
+  const purpose = searchParams.get("purpose") as Purpose | null;
+  const register = searchParams.get("register") as Register | null;
   const query = searchParams.get("q");
   const tag = searchParams.get("tag");
 
   const entries = await listEntries({
     type: type ?? undefined,
+    purpose: purpose ?? undefined,
+    register: register ?? undefined,
     tag: tag ?? undefined,
     query: query ?? undefined,
   });

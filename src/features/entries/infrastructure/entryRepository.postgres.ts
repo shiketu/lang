@@ -11,12 +11,12 @@ function toEntry(row: Row): Entry {
   return {
     id: row.id,
     type: row.type,
+    purpose: row.purpose ?? undefined,
+    register: row.register ?? undefined,
     japanese: row.japanese,
     reading: row.reading ?? undefined,
     meaning: row.meaning,
     tags: row.tags ?? [],
-    source: row.source ?? undefined,
-    level: row.level ?? undefined,
     created: row.created,
     updated: row.updated,
     content: row.content,
@@ -29,6 +29,8 @@ export class PostgresEntryRepository implements EntryRepository {
     const conds: SQL[] = [];
 
     if (filter?.type) conds.push(eq(entries.type, filter.type));
+    if (filter?.purpose) conds.push(eq(entries.purpose, filter.purpose));
+    if (filter?.register) conds.push(eq(entries.register, filter.register));
     if (filter?.tag) conds.push(arrayContains(entries.tags, [filter.tag]));
     if (filter?.query) {
       const q = `%${filter.query}%`;
@@ -74,12 +76,12 @@ export class PostgresEntryRepository implements EntryRepository {
     await db.insert(entries).values({
       id: entry.id,
       type: entry.type,
+      purpose: entry.purpose ?? null,
+      register: entry.register ?? null,
       japanese: entry.japanese,
       reading: entry.reading ?? null,
       meaning: entry.meaning,
       tags: entry.tags,
-      source: entry.source ?? null,
-      level: entry.level ?? null,
       content: entry.content,
       created: entry.created,
       updated: entry.updated,
@@ -97,12 +99,12 @@ export class PostgresEntryRepository implements EntryRepository {
       .update(entries)
       .set({
         type: updated.type,
+        purpose: updated.purpose ?? null,
+        register: updated.register ?? null,
         japanese: updated.japanese,
         reading: updated.reading ?? null,
         meaning: updated.meaning,
         tags: updated.tags,
-        source: updated.source ?? null,
-        level: updated.level ?? null,
         content: updated.content,
         updated: updated.updated,
       })

@@ -1,5 +1,5 @@
 {
-  "id": "745bc781-0a4a-434f-a9e1-e66313051eac",
+  "id": "57b7e4a7-a5ad-4590-ba9b-a31a730ce139",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -19,6 +19,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "register": {
+          "name": "register",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "japanese": {
           "name": "japanese",
@@ -44,18 +56,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "level": {
-          "name": "level",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "content": {
           "name": "content",

@@ -1,12 +1,12 @@
 CREATE TABLE "entries" (
 	"id" text PRIMARY KEY NOT NULL,
 	"type" text NOT NULL,
+	"purpose" text,
+	"register" text,
 	"japanese" text NOT NULL,
 	"reading" text,
 	"meaning" text NOT NULL,
 	"tags" text[] DEFAULT '{}' NOT NULL,
-	"source" text,
-	"level" text,
 	"content" text DEFAULT '' NOT NULL,
 	"created" text NOT NULL,
 	"updated" text NOT NULL

@@ -1,78 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import TagBadge from "@/components/TagBadge";
-import type { EntryType, Level } from "../domain/Entry";
+import type { Entry, EntryType, Purpose, Register } from "../domain/Entry";
+import {
+  TYPE_OPTIONS,
+  PURPOSE_OPTIONS,
+  REGISTER_OPTIONS,
+  type MetaOption,
+} from "./entryMeta";
 
-interface EntryFormProps {
-  initialData?: {
-    id?: string;
-    type: EntryType;
-    japanese: string;
-    reading: string;
-    meaning: string;
-    tags: string[];
-    source: string;
-    level: Level | "";
-    content: string;
-  };
+export interface EntryFormValues {
+  id?: string;
+  type: EntryType;
+  purpose?: Purpose;
+  register?: Register;
+  japanese: string;
+  reading: string;
+  meaning: string;
+  tags: string[];
+  content: string;
 }
 
-const TYPES: { value: EntryType; label: string }[] = [
-  { value: "vocabulary", label: "単語" },
-  { value: "expression", label: "表現" },
-  { value: "sentence", label: "例文" },
-];
+interface EntryFormProps {
+  initialData?: EntryFormValues;
+  onSaved: (entry: Entry) => void;
+  onCancel?: () => void;
+}
 
-const LEVELS: { value: Level | ""; label: string }[] = [
-  { value: "", label: "未設定" },
-  { value: "beginner", label: "初級" },
-  { value: "intermediate", label: "中級" },
-  { value: "advanced", label: "上級" },
-];
+const EMPTY: EntryFormValues = {
+  type: "vocabulary",
+  purpose: undefined,
+  register: undefined,
+  japanese: "",
+  reading: "",
+  meaning: "",
+  tags: [],
+  content: "",
+};
 
-export default function EntryForm({ initialData }: EntryFormProps) {
-  const router = useRouter();
+/** Single-select chip group. `clearable` lets clicking the active chip unset it. */
+function ChipGroup<T extends string>({
+  options,
+  value,
+  onChange,
+  clearable,
+}: {
+  options: MetaOption<T>[];
+  value: T | undefined;
+  onChange: (v: T | undefined) => void;
+  clearable?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(clearable && active ? undefined : o.value)}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+              active
+                ? `${o.badge} border-transparent ring-2 ring-offset-1 ring-current/30`
+                : "border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function EntryForm({
+  initialData,
+  onSaved,
+  onCancel,
+}: EntryFormProps) {
   const isEdit = !!initialData?.id;
-
-  const [type, setType] = useState<EntryType>(initialData?.type ?? "vocabulary");
-  const [japanese, setJapanese] = useState(initialData?.japanese ?? "");
-  const [reading, setReading] = useState(initialData?.reading ?? "");
-  const [meaning, setMeaning] = useState(initialData?.meaning ?? "");
-  const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
+  const [v, setV] = useState<EntryFormValues>(initialData ?? EMPTY);
   const [tagInput, setTagInput] = useState("");
-  const [source, setSource] = useState(initialData?.source ?? "");
-  const [level, setLevel] = useState<Level | "">(initialData?.level ?? "");
-  const [content, setContent] = useState(initialData?.content ?? "");
+  const [showMemo, setShowMemo] = useState(!!initialData?.content);
   const [saving, setSaving] = useState(false);
+
+  function set<K extends keyof EntryFormValues>(key: K, val: EntryFormValues[K]) {
+    setV((prev) => ({ ...prev, [key]: val }));
+  }
 
   function addTag() {
     const t = tagInput.trim();
-    if (t && !tags.includes(t)) {
-      setTags([...tags, t]);
-    }
+    if (t && !v.tags.includes(t)) set("tags", [...v.tags, t]);
     setTagInput("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!v.japanese.trim() || !v.meaning.trim()) return;
     setSaving(true);
 
     const payload = {
-      type,
-      japanese,
-      reading: reading || undefined,
-      meaning,
-      tags,
-      source: source || undefined,
-      level: level || undefined,
-      content,
+      type: v.type,
+      purpose: v.purpose,
+      register: v.register,
+      japanese: v.japanese.trim(),
+      reading: v.reading.trim() || undefined,
+      meaning: v.meaning.trim(),
+      tags: v.tags,
+      content: v.content,
     };
 
     const url = isEdit ? `/api/entries/${initialData!.id}` : "/api/entries";
     const method = isEdit ? "PUT" : "POST";
-
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -80,80 +120,64 @@ export default function EntryForm({ initialData }: EntryFormProps) {
     });
 
     if (res.ok) {
-      const entry = await res.json();
-      router.push(`/lakehouse/${entry.id}`);
-      router.refresh();
+      const entry: Entry = await res.json();
+      if (!isEdit) {
+        setV(EMPTY); // clear for the next quick add
+        setShowMemo(false);
+      }
+      onSaved(entry);
     }
     setSaving(false);
   }
 
+  const input =
+    "w-full border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">種類</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as EntryType)}
-            className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          >
-            {TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">レベル</label>
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value as Level | "")}
-            className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          >
-            {LEVELS.map((l) => (
-              <option key={l.value} value={l.value}>{l.label}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">日本語 *</label>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <input
           type="text"
           required
-          value={japanese}
-          onChange={(e) => setJapanese(e.target.value)}
-          className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          placeholder="食べ放題"
+          value={v.japanese}
+          onChange={(e) => set("japanese", e.target.value)}
+          className={input}
+          placeholder="日本語 *（例：食べ放題）"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">読み</label>
         <input
           type="text"
-          value={reading}
-          onChange={(e) => setReading(e.target.value)}
-          className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          placeholder="たべほうだい"
+          value={v.reading}
+          onChange={(e) => set("reading", e.target.value)}
+          className={input}
+          placeholder="読み（たべほうだい）"
         />
+      </div>
+      <input
+        type="text"
+        required
+        value={v.meaning}
+        onChange={(e) => set("meaning", e.target.value)}
+        className={input}
+        placeholder="意味 *（all-you-can-eat）"
+      />
+
+      <div className="space-y-2">
+        <div>
+          <span className="block text-xs text-gray-500 mb-1">種類</span>
+          <ChipGroup options={TYPE_OPTIONS} value={v.type} onChange={(x) => x && set("type", x)} />
+        </div>
+        <div>
+          <span className="block text-xs text-gray-500 mb-1">用途</span>
+          <ChipGroup options={PURPOSE_OPTIONS} value={v.purpose} onChange={(x) => set("purpose", x)} clearable />
+        </div>
+        <div>
+          <span className="block text-xs text-gray-500 mb-1">使用場面</span>
+          <ChipGroup options={REGISTER_OPTIONS} value={v.register} onChange={(x) => set("register", x)} clearable />
+        </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">意味 *</label>
-        <input
-          type="text"
-          required
-          value={meaning}
-          onChange={(e) => setMeaning(e.target.value)}
-          className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          placeholder="all-you-can-eat"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">タグ</label>
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2">
           <input
             type="text"
             value={tagInput}
@@ -164,58 +188,62 @@ export default function EntryForm({ initialData }: EntryFormProps) {
                 addTag();
               }
             }}
-            className="flex-1 border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-            placeholder="タグを入力してEnter"
+            className={`${input} flex-1`}
+            placeholder="タグ（場面・トピックなど）→ Enter"
           />
           <button
             type="button"
             onClick={addTag}
-            className="px-3 py-2 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+            className="px-3 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
           >
             追加
           </button>
         </div>
-        <div className="flex flex-wrap gap-1">
-          {tags.map((tag) => (
-            <TagBadge
-              key={tag}
-              tag={tag}
-              removable
-              onRemove={() => setTags(tags.filter((t) => t !== tag))}
-            />
-          ))}
-        </div>
+        {v.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {v.tags.map((t) => (
+              <TagBadge key={t} tag={t} removable onRemove={() => set("tags", v.tags.filter((x) => x !== t))} />
+            ))}
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">出典</label>
-        <input
-          type="text"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-          placeholder="教科書、アニメ、会話など"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">メモ（Markdown）</label>
+      {showMemo ? (
         <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-          className="w-full border rounded-md px-3 py-2 font-mono text-sm dark:bg-gray-800 dark:border-gray-700"
-          placeholder="## 例文&#10;- この店は食べ放題で有名です。&#10;&#10;## メモ&#10;..."
+          value={v.content}
+          onChange={(e) => set("content", e.target.value)}
+          rows={4}
+          className={`${input} font-mono`}
+          placeholder="メモ（Markdown）：例文・使い方など"
         />
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowMemo(true)}
+          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+        >
+          + メモを追加
+        </button>
+      )}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-      >
-        {saving ? "保存中..." : isEdit ? "更新する" : "追加する"}
-      </button>
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={saving || !v.japanese.trim() || !v.meaning.trim()}
+          className="px-5 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {saving ? "保存中..." : isEdit ? "更新する" : "追加する"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400"
+          >
+            キャンセル
+          </button>
+        )}
+      </div>
     </form>
   );
 }

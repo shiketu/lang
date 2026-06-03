@@ -120,7 +120,7 @@ export default function PracticeSession() {
       {phase === "prompt" && !current && (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">言語データにエントリーがありません。</p>
-          <a href="/lakehouse/new" className="text-blue-600 hover:underline">
+          <a href="/lakehouse" className="text-blue-600 hover:underline">
             まずエントリーを追加しましょう
           </a>
         </div>

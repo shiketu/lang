@@ -18,6 +18,8 @@ function slugify(japanese: string, id: string): string {
 
 function matchesFilter(entry: Entry, filter: EntryFilter): boolean {
   if (filter.type && entry.type !== filter.type) return false;
+  if (filter.purpose && entry.purpose !== filter.purpose) return false;
+  if (filter.register && entry.register !== filter.register) return false;
   if (filter.tag && !entry.tags.includes(filter.tag)) return false;
   if (filter.query) {
     const q = filter.query.toLowerCase();

@@ -6,13 +6,15 @@ import Link from "next/link";
 import EntryForm from "@/features/entries/components/EntryForm";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TagBadge from "@/components/TagBadge";
-import type { Entry, EntryType, Level } from "@/features/entries/domain/Entry";
-
-const TYPE_LABELS: Record<string, string> = {
-  vocabulary: "単語",
-  expression: "表現",
-  sentence: "例文",
-};
+import {
+  TYPE_LABEL,
+  TYPE_BADGE,
+  PURPOSE_LABEL,
+  PURPOSE_BADGE,
+  REGISTER_LABEL,
+  REGISTER_BADGE,
+} from "@/features/entries/components/entryMeta";
+import type { Entry } from "@/features/entries/domain/Entry";
 
 export default function EntryDetailPage({
   params,
@@ -50,28 +52,27 @@ export default function EntryDetailPage({
 
   if (editing) {
     return (
-      <div>
+      <div className="max-w-2xl">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">エントリー編集</h1>
-          <button
-            onClick={() => setEditing(false)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            キャンセル
-          </button>
         </div>
         <EntryForm
           initialData={{
             id: entry.id,
-            type: entry.type as EntryType,
+            type: entry.type,
+            purpose: entry.purpose,
+            register: entry.register,
             japanese: entry.japanese,
             reading: entry.reading ?? "",
             meaning: entry.meaning,
             tags: entry.tags,
-            source: entry.source ?? "",
-            level: (entry.level as Level) ?? "",
             content: entry.content,
           }}
+          onSaved={(updated) => {
+            setEntry(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
         />
       </div>
     );
@@ -84,21 +85,36 @@ export default function EntryDetailPage({
           言語データ
         </Link>
         <span>/</span>
-        <span>{entry.japanese}</span>
+        <span className="truncate">{entry.japanese}</span>
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold">{entry.japanese}</h1>
             {entry.reading && <p className="text-lg text-gray-500">{entry.reading}</p>}
           </div>
-          <span className="text-sm px-3 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-            {TYPE_LABELS[entry.type] ?? entry.type}
+          <span className={`text-sm px-3 py-1 rounded font-medium ${TYPE_BADGE[entry.type]}`}>
+            {TYPE_LABEL[entry.type] ?? entry.type}
           </span>
         </div>
 
         <p className="text-lg">{entry.meaning}</p>
+
+        {(entry.purpose || entry.register) && (
+          <div className="flex flex-wrap gap-2">
+            {entry.purpose && (
+              <span className={`text-xs px-2 py-1 rounded font-medium ${PURPOSE_BADGE[entry.purpose]}`}>
+                {PURPOSE_LABEL[entry.purpose]}
+              </span>
+            )}
+            {entry.register && (
+              <span className={`text-xs px-2 py-1 rounded font-medium ${REGISTER_BADGE[entry.register]}`}>
+                {REGISTER_LABEL[entry.register]}
+              </span>
+            )}
+          </div>
+        )}
 
         {entry.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -109,8 +125,6 @@ export default function EntryDetailPage({
         )}
 
         <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
-          {entry.source && <p>出典: {entry.source}</p>}
-          {entry.level && <p>レベル: {entry.level}</p>}
           <p>作成: {entry.created}</p>
           <p>更新: {entry.updated}</p>
         </div>
