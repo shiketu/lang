@@ -11,7 +11,7 @@ export function getRecording(id: string): Promise<Recording | null> {
 
 export function saveRecording(
   file: File,
-  meta: { topic?: string; tags?: string[] }
+  meta: { topic?: string; category?: string; tags?: string[] }
 ): Promise<Recording> {
   return recordingRepository.save(file, meta);
 }

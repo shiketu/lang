@@ -2,26 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
+import { ListTodo, CheckCircle2, Circle } from "lucide-react";
 import type { TaskWithStatus, TaskStatus } from "../domain/Task";
-
-const STATUS_ICON: Record<TaskStatus, string> = {
-  todo: "○",
-  in_progress: "◐",
-  done: "✓",
-};
-
-const STATUS_COLOR: Record<TaskStatus, string> = {
-  todo: "text-gray-400",
-  in_progress: "text-yellow-500",
-  done: "text-green-500",
-};
 
 function todayStr(): string {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default function TodoWidget() {
@@ -32,78 +19,103 @@ export default function TodoWidget() {
   useEffect(() => {
     fetch(`/api/todos/daily?date=${date}`)
       .then((r) => r.json())
-      .then(setTasks)
+      .then((d) => setTasks(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
   }, [date]);
 
-  async function cycleStatus(taskId: string, current: TaskStatus) {
-    const cycle: TaskStatus[] = ["todo", "in_progress", "done"];
-    const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
+  async function toggleStatus(taskId: string, current: TaskStatus) {
+    const next: TaskStatus = current === "done" ? "todo" : "done";
     await fetch("/api/todos/daily", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, taskId, status: next }),
     });
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: next } : t))
-    );
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: next } : t)));
   }
-
-  if (loading) return null;
-  if (tasks.length === 0) return null;
 
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const total = tasks.length;
-  const pct = Math.round((doneCount / total) * 100);
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+  const allDone = total > 0 && doneCount === total;
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold">今日のタスク</h3>
-        <Link
-          href="/todos"
-          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-        >
+    <div className="panel p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ListTodo className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">今日のタスク</h3>
+        </div>
+        <Link href="/todos" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
           管理 →
         </Link>
       </div>
 
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 rounded-full transition-all"
-            style={{ width: `${pct}%` }}
-          />
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+          ))}
         </div>
-        <span className="text-xs text-gray-500 whitespace-nowrap">
-          {doneCount}/{total}
-        </span>
-      </div>
+      ) : total === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">タスクがありません。</p>
+          <Link href="/todos" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+            学習計画を立てる →
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span className="text-slate-500 dark:text-slate-400">進捗状況</span>
+            <span className="font-medium text-indigo-600 dark:text-indigo-400">
+              {doneCount}/{total}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
+            <motion.div
+              className="h-full bg-indigo-500 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+          </div>
 
-      {/* Task list */}
-      <div className="space-y-1">
-        {tasks.map((task) => (
-          <button
-            key={task.id}
-            onClick={() => cycleStatus(task.id, task.status)}
-            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <span className={`text-sm ${STATUS_COLOR[task.status]}`}>
-              {STATUS_ICON[task.status]}
-            </span>
-            <span
-              className={`text-sm ${
-                task.status === "done"
-                  ? "line-through text-gray-400"
-                  : ""
-              }`}
-            >
-              {task.title}
-            </span>
-          </button>
-        ))}
-      </div>
+          {allDone && (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-3 text-center">
+              🎉 今日のタスクをすべて完了しました！
+            </p>
+          )}
+
+          <div className="space-y-2">
+            {tasks.map((task) => {
+              const done = task.status === "done";
+              const Icon = done ? CheckCircle2 : Circle;
+              return (
+                <button
+                  key={task.id}
+                  onClick={() => toggleStatus(task.id, task.status)}
+                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
+                    done
+                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700"
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 shrink-0 ${done ? "text-emerald-500" : "text-slate-400"}`} />
+                  <span
+                    className={`text-sm ${
+                      task.status === "done"
+                        ? "line-through text-slate-400"
+                        : "text-slate-700 dark:text-slate-200"
+                    }`}
+                  >
+                    {task.title}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

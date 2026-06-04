@@ -56,6 +56,7 @@ export const recordings = pgTable("recordings", {
   id: text("id").primaryKey(),
   filename: text("filename").notNull(),
   topic: text("topic"),
+  category: text("category"),
   tags: text("tags").array().notNull().default([]),
   created: text("created").notNull(),
   duration: integer("duration"),

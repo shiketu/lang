@@ -2,27 +2,78 @@
 
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Tailwind v4 dropped the default pointer cursor on buttons — restore it. */
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* App canvas: slate-50 light / slate-950 dark */
+.app-canvas {
+  @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100;
+}
+
+@layer components {
+  /* Surface card (white / slate-900) with subtle border + shadow + hover lift */
+  .card {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm
+      transition-all duration-200;
+  }
+  /* Use on interactive cards for the lift effect */
+  .card-interactive {
+    @apply hover:-translate-y-0.5 hover:shadow-md;
+  }
+  /* Large rounded panel */
+  .panel {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm;
+  }
+  /* Text inputs */
+  .field {
+    @apply w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800
+      px-3 py-2 text-sm text-slate-800 dark:text-slate-100
+      placeholder:text-slate-400
+      focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400;
+  }
+  /* Primary solid button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2
+      text-sm font-medium text-white transition-all hover:bg-indigo-700 active:scale-[.98]
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  /* Ghost/secondary button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
+      text-slate-600 dark:text-slate-300 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[.98];
+  }
+}
+
+/* Subtle entrance animation (for non-motion uses) */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+/* Respect reduced-motion: disable transitions/animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

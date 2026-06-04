@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import {
   getRecordingBlob,
   getRecordingSignedUrl,
+  deleteRecording,
 } from "@/features/recordings/application/service";
 import { requireAuth } from "@/lib/auth";
 
@@ -34,4 +35,20 @@ export async function GET(
       "Content-Length": result.data.length.toString(),
     },
   });
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
+  const { id } = await params;
+  const deleted = await deleteRecording(id);
+
+  if (!deleted) {
+    return new Response("Not found", { status: 404 });
+  }
+  return Response.json({ success: true });
 }

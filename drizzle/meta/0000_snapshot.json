@@ -1,5 +1,5 @@
 {
-  "id": "57b7e4a7-a5ad-4590-ba9b-a31a730ce139",
+  "id": "9ff8c471-4daa-43d2-a6b4-130c25c2396b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -148,6 +148,12 @@
         },
         "topic": {
           "name": "topic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
           "type": "text",
           "primaryKey": false,
           "notNull": false

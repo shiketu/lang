@@ -31,7 +31,7 @@ function FilterChips<T extends string>({
             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
               active
                 ? `${o.badge} border-transparent`
-                : "border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                : "border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
             {o.label}
@@ -54,6 +54,12 @@ export default function LakehousePage() {
   const [registerFilter, setRegisterFilter] = useState<Register | "">("");
   const [tagFilter, setTagFilter] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+
+  // seed search from ?q= (header global search)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setSearch(q);
+  }, []);
 
   // debounce search
   useEffect(() => {
@@ -92,18 +98,15 @@ export default function LakehousePage() {
   return (
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold">言語データ</h1>
-        <button
-          onClick={() => setShowAdd((s) => !s)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-        >
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">言語データ</h1>
+        <button onClick={() => setShowAdd((s) => !s)} className="btn-primary">
           {showAdd ? "閉じる" : "+ 追加"}
         </button>
       </div>
 
       {/* Inline quick add */}
       {showAdd && (
-        <div className="mb-6 border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50/50 dark:bg-gray-900/40">
+        <div className="card p-5 mb-6">
           <EntryForm onSaved={handleAdded} />
         </div>
       )}
@@ -115,7 +118,7 @@ export default function LakehousePage() {
           placeholder="検索…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-72 border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+          className="field w-full sm:w-72"
         />
         <div className="flex flex-col gap-2 text-sm">
           <FilterChips options={TYPE_OPTIONS} value={typeFilter} onChange={setTypeFilter} />
@@ -125,7 +128,7 @@ export default function LakehousePage() {
             <select
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="w-fit border rounded-md px-2 py-1 text-xs dark:bg-gray-800 dark:border-gray-700"
+              className="w-fit rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs"
             >
               <option value="">全タグ</option>
               {tags.map((t) => (
@@ -136,21 +139,21 @@ export default function LakehousePage() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
         {loading ? "読み込み中…" : `${entries.length} 件`}
       </p>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div key={i} className="h-28 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
           ))}
         </div>
       ) : entries.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">条件に合うデータがありません。</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-4">条件に合うデータがありません。</p>
           {!showAdd && (
-            <button onClick={() => setShowAdd(true)} className="text-blue-600 hover:underline">
+            <button onClick={() => setShowAdd(true)} className="text-indigo-600 dark:text-indigo-400 hover:underline">
               最初のエントリーを追加する
             </button>
           )}

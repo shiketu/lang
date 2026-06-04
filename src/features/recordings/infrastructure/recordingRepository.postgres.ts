@@ -5,6 +5,7 @@ import { recordings } from "@/lib/db/schema";
 import type { BlobStorageProvider } from "@/lib/storage/interfaces";
 import type { Recording } from "../domain/Recording";
 import type { RecordingRepository } from "../domain/RecordingRepository";
+import { categoryFolder } from "./categoryFolder";
 
 type Row = typeof recordings.$inferSelect;
 
@@ -13,6 +14,7 @@ function toRecording(row: Row): Recording {
     id: row.id,
     filename: row.filename,
     topic: row.topic ?? undefined,
+    category: row.category ?? undefined,
     tags: row.tags ?? [],
     created: row.created,
     duration: row.duration ?? undefined,
@@ -43,12 +45,12 @@ export class PostgresRecordingRepository implements RecordingRepository {
 
   async save(
     file: File,
-    meta: { topic?: string; tags?: string[] }
+    meta: { topic?: string; category?: string; tags?: string[] }
   ): Promise<Recording> {
     const db = getDb();
     const id = crypto.randomUUID();
     const ext = file.name.split(".").pop() ?? "webm";
-    const key = `${id}.${ext}`;
+    const key = `${categoryFolder(meta.category)}/${id}.${ext}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
     await this.blobStorage.put(key, buffer, file.type || "video/webm");
@@ -57,6 +59,7 @@ export class PostgresRecordingRepository implements RecordingRepository {
       id,
       filename: key,
       topic: meta.topic,
+      category: meta.category,
       tags: meta.tags ?? [],
       created: new Date().toISOString(),
     };
@@ -65,6 +68,7 @@ export class PostgresRecordingRepository implements RecordingRepository {
       id: recording.id,
       filename: recording.filename,
       topic: recording.topic ?? null,
+      category: recording.category ?? null,
       tags: recording.tags,
       created: recording.created,
       duration: recording.duration ?? null,

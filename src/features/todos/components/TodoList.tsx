@@ -1,17 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, Circle, Pencil, Trash2, Plus } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Task, TaskSchedule, TaskWithStatus, TaskStatus } from "../domain/Task";
 
 const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
-
-const STATUS_DISPLAY: Record<TaskStatus, { icon: string; label: string; color: string }> = {
-  todo: { icon: "○", label: "未着手", color: "text-gray-400" },
-  in_progress: { icon: "◐", label: "進行中", color: "text-yellow-500" },
-  done: { icon: "✓", label: "完了", color: "text-green-500" },
-};
-
-const STATUS_CYCLE: TaskStatus[] = ["todo", "in_progress", "done"];
 
 function formatLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -42,6 +36,7 @@ export default function TodoList() {
   const [editTitle, setEditTitle] = useState("");
   const [editScheduleType, setEditScheduleType] = useState<"daily" | "weekly">("daily");
   const [editWeeklyDays, setEditWeeklyDays] = useState<number[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
     const [allRes, dailyRes] = await Promise.all([
@@ -74,9 +69,10 @@ export default function TodoList() {
     loadTasks();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("このタスクを削除しますか？")) return;
-    await fetch(`/api/todos/${id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteId) return;
+    await fetch(`/api/todos/${deleteId}`, { method: "DELETE" });
+    setDeleteId(null);
     loadTasks();
   }
 
@@ -105,9 +101,8 @@ export default function TodoList() {
     loadTasks();
   }
 
-  async function cycleStatus(taskId: string, current: TaskStatus) {
-    const idx = STATUS_CYCLE.indexOf(current);
-    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+  async function toggleStatus(taskId: string, current: TaskStatus) {
+    const next: TaskStatus = current === "done" ? "todo" : "done";
     await fetch("/api/todos/daily", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -131,46 +126,55 @@ export default function TodoList() {
       {/* Today's checklist */}
       <div>
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-lg font-bold">今日のタスク</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            今日のタスク
+          </h2>
           {dailyTasks.length > 0 && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
               {doneCount}/{dailyTasks.length} 完了
             </span>
           )}
         </div>
 
         {dailyTasks.length === 0 ? (
-          <p className="text-gray-500 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             今日のタスクはありません。右側でタスクを追加してください。
           </p>
         ) : (
           <div className="space-y-2">
             {dailyTasks.map((task) => {
-              const display = STATUS_DISPLAY[task.status];
+              const done = task.status === "done";
+              const Icon = done ? CheckCircle2 : Circle;
               return (
                 <button
                   key={task.id}
-                  onClick={() => cycleStatus(task.id, task.status)}
-                  className={`w-full text-left flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors ${
-                    task.status === "done"
-                      ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-900/10"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                  onClick={() => toggleStatus(task.id, task.status)}
+                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                    done
+                      ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-900/10"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700"
                   }`}
                 >
-                  <span className={`text-xl ${display.color}`}>
-                    {display.icon}
-                  </span>
+                  <Icon
+                    className={`w-5 h-5 shrink-0 ${
+                      done ? "text-emerald-500" : "text-slate-400"
+                    }`}
+                  />
                   <span
                     className={
-                      task.status === "done"
-                        ? "line-through text-gray-400"
-                        : ""
+                      done
+                        ? "line-through text-slate-400"
+                        : "text-slate-700 dark:text-slate-200"
                     }
                   >
                     {task.title}
                   </span>
-                  <span className={`ml-auto text-xs ${display.color}`}>
-                    {display.label}
+                  <span
+                    className={`ml-auto text-xs ${
+                      done ? "text-emerald-500" : "text-slate-400"
+                    }`}
+                  >
+                    {done ? "完了" : "未完成"}
                   </span>
                 </button>
               );
@@ -181,7 +185,9 @@ export default function TodoList() {
 
       {/* Task management */}
       <div>
-        <h2 className="text-lg font-bold mb-4">タスク管理</h2>
+        <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100">
+          タスク管理
+        </h2>
 
         {/* Create form */}
         <form onSubmit={handleCreate} className="space-y-3 mb-6">
@@ -190,7 +196,7 @@ export default function TodoList() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="新しいタスク..."
-            className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+            className="field"
           />
           <div className="flex gap-2 items-center">
             <select
@@ -198,7 +204,7 @@ export default function TodoList() {
               onChange={(e) =>
                 setScheduleType(e.target.value as "daily" | "weekly")
               }
-              className="border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+              className="field w-auto"
             >
               <option value="daily">毎日</option>
               <option value="weekly">毎週</option>
@@ -212,8 +218,8 @@ export default function TodoList() {
                     onClick={() => toggleDay(i, weeklyDays, setWeeklyDays)}
                     className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${
                       weeklyDays.includes(i)
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                     }`}
                   >
                     {label}
@@ -228,8 +234,9 @@ export default function TodoList() {
               !title.trim() ||
               (scheduleType === "weekly" && weeklyDays.length === 0)
             }
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="btn-primary"
           >
+            <Plus className="w-4 h-4" />
             追加
           </button>
         </form>
@@ -238,25 +245,20 @@ export default function TodoList() {
         <div className="space-y-2">
           {tasks.map((task) =>
             editingId === task.id ? (
-              <div
-                key={task.id}
-                className="border rounded-lg p-3 space-y-2 dark:border-gray-700"
-              >
+              <div key={task.id} className="card p-3 space-y-2">
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+                  className="field"
                 />
                 <div className="flex gap-2 items-center">
                   <select
                     value={editScheduleType}
                     onChange={(e) =>
-                      setEditScheduleType(
-                        e.target.value as "daily" | "weekly"
-                      )
+                      setEditScheduleType(e.target.value as "daily" | "weekly")
                     }
-                    className="border rounded-md px-3 py-1.5 text-sm dark:bg-gray-800 dark:border-gray-700"
+                    className="field w-auto text-sm"
                   >
                     <option value="daily">毎日</option>
                     <option value="weekly">毎週</option>
@@ -272,8 +274,8 @@ export default function TodoList() {
                           }
                           className={`w-7 h-7 rounded-full text-xs font-medium transition-colors ${
                             editWeeklyDays.includes(i)
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-200 dark:bg-gray-700"
+                              ? "bg-indigo-600 text-white"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                           }`}
                         >
                           {label}
@@ -283,16 +285,10 @@ export default function TodoList() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={saveEdit}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
+                  <button onClick={saveEdit} className="btn-primary">
                     保存
                   </button>
-                  <button
-                    onClick={() => setEditingId(null)}
-                    className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700"
-                  >
+                  <button onClick={() => setEditingId(null)} className="btn-ghost">
                     キャンセル
                   </button>
                 </div>
@@ -300,26 +296,30 @@ export default function TodoList() {
             ) : (
               <div
                 key={task.id}
-                className="flex items-center justify-between border rounded-lg px-4 py-3 dark:border-gray-700"
+                className="card flex items-center justify-between px-4 py-3"
               >
                 <div>
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-slate-800 dark:text-slate-100">
+                    {task.title}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {scheduleLabel(task.schedule)}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => startEdit(task)}
-                    className="text-xs text-gray-500 hover:text-blue-600"
+                    aria-label="編集"
+                    className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    編集
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(task.id)}
-                    className="text-xs text-gray-500 hover:text-red-600"
+                    onClick={() => setDeleteId(task.id)}
+                    aria-label="削除"
+                    className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    削除
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -327,6 +327,16 @@ export default function TodoList() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="このタスクを削除しますか？"
+        message="この操作は取り消せません。"
+        confirmLabel="削除する"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

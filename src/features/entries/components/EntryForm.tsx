@@ -63,7 +63,7 @@ function ChipGroup<T extends string>({
             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
               active
                 ? `${o.badge} border-transparent ring-2 ring-offset-1 ring-current/30`
-                : "border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                : "border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
             }`}
           >
             {o.label}
@@ -130,8 +130,7 @@ export default function EntryForm({
     setSaving(false);
   }
 
-  const input =
-    "w-full border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40";
+  const input = "field";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -163,15 +162,15 @@ export default function EntryForm({
 
       <div className="space-y-2">
         <div>
-          <span className="block text-xs text-gray-500 mb-1">種類</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">種類</span>
           <ChipGroup options={TYPE_OPTIONS} value={v.type} onChange={(x) => x && set("type", x)} />
         </div>
         <div>
-          <span className="block text-xs text-gray-500 mb-1">用途</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">用途</span>
           <ChipGroup options={PURPOSE_OPTIONS} value={v.purpose} onChange={(x) => set("purpose", x)} clearable />
         </div>
         <div>
-          <span className="block text-xs text-gray-500 mb-1">使用場面</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">使用場面</span>
           <ChipGroup options={REGISTER_OPTIONS} value={v.register} onChange={(x) => set("register", x)} clearable />
         </div>
       </div>
@@ -194,7 +193,7 @@ export default function EntryForm({
           <button
             type="button"
             onClick={addTag}
-            className="px-3 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+            className="px-3 py-2 text-sm rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
           >
             追加
           </button>
@@ -220,7 +219,7 @@ export default function EntryForm({
         <button
           type="button"
           onClick={() => setShowMemo(true)}
-          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
         >
           + メモを追加
         </button>
@@ -230,16 +229,12 @@ export default function EntryForm({
         <button
           type="submit"
           disabled={saving || !v.japanese.trim() || !v.meaning.trim()}
-          className="px-5 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="btn-primary"
         >
           {saving ? "保存中..." : isEdit ? "更新する" : "追加する"}
         </button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400"
-          >
+          <button type="button" onClick={onCancel} className="btn-ghost">
             キャンセル
           </button>
         )}

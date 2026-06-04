@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Shuffle, Check, Eye, Sparkles, ArrowRight } from "lucide-react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import type { Entry } from "@/features/entries/domain/Entry";
 
@@ -73,13 +74,15 @@ export default function PracticeSession() {
   if (phase === "loading" && !current) {
     return (
       <div className="space-y-6">
-        <div className="flex gap-3 items-end">
+        <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-sm mb-1">種類で絞り込み</label>
+            <label className="block text-sm mb-1 text-slate-600 dark:text-slate-300">
+              種類で絞り込み
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+              className="field w-auto"
             >
               <option value="">全て</option>
               <option value="vocabulary">単語</option>
@@ -88,11 +91,13 @@ export default function PracticeSession() {
             </select>
           </div>
           <div>
-            <label className="block text-sm mb-1">タグで絞り込み</label>
+            <label className="block text-sm mb-1 text-slate-600 dark:text-slate-300">
+              タグで絞り込み
+            </label>
             <select
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
-              className="border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
+              className="field w-auto"
             >
               <option value="">全て</option>
               {tags.map((t) => (
@@ -100,10 +105,8 @@ export default function PracticeSession() {
               ))}
             </select>
           </div>
-          <button
-            onClick={pickRandom}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+          <button onClick={pickRandom} className="btn-primary">
+            <Shuffle className="w-4 h-4" />
             練習を始める
           </button>
         </div>
@@ -113,14 +116,14 @@ export default function PracticeSession() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      {phase === "loading" && (
-        <p className="text-gray-500">読み込み中...</p>
-      )}
+      {phase === "loading" && <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>}
 
       {phase === "prompt" && !current && (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">言語データにエントリーがありません。</p>
-          <a href="/lakehouse" className="text-blue-600 hover:underline">
+          <p className="text-slate-500 dark:text-slate-400 mb-4">
+            言語データにエントリーがありません。
+          </p>
+          <a href="/lakehouse" className="text-indigo-600 dark:text-indigo-400 hover:underline">
             まずエントリーを追加しましょう
           </a>
         </div>
@@ -128,43 +131,44 @@ export default function PracticeSession() {
 
       {phase === "prompt" && current && (
         <div className="space-y-4">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-            <p className="text-sm text-gray-500 mb-2">次の意味を日本語で表現してください：</p>
-            <p className="text-xl font-medium">{current.meaning}</p>
+          <div className="card p-6">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+              次の意味を日本語で表現してください：
+            </p>
+            <p className="text-xl font-medium text-slate-800 dark:text-slate-100">
+              {current.meaning}
+            </p>
             {current.reading && (
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-sm text-slate-400 mt-2">
                 ヒント：{current.type === "vocabulary" ? "単語" : "表現"}
               </p>
             )}
           </div>
-          <div>
-            <textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              rows={3}
-              className="w-full border rounded-md px-3 py-2 dark:bg-gray-800 dark:border-gray-700"
-              placeholder="あなたの日本語表現を入力..."
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  setPhase("input");
-                }
-              }}
-            />
-          </div>
+          <textarea
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            rows={3}
+            className="field resize-y"
+            placeholder="あなたの日本語表現を入力..."
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                setPhase("input");
+              }
+            }}
+          />
           <div className="flex gap-3">
             <button
               onClick={() => setPhase("input")}
               disabled={!userInput.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
             >
+              <Check className="w-4 h-4" />
               確認する
             </button>
-            <button
-              onClick={skipToReveal}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400"
-            >
+            <button onClick={skipToReveal} className="btn-ghost">
+              <Eye className="w-4 h-4" />
               答えを見る
             </button>
           </div>
@@ -173,23 +177,26 @@ export default function PracticeSession() {
 
       {phase === "input" && current && (
         <div className="space-y-4">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-            <p className="text-sm text-gray-500 mb-1">意味：</p>
-            <p className="text-lg">{current.meaning}</p>
-            <p className="text-sm text-gray-500 mt-3 mb-1">あなたの表現：</p>
-            <p className="text-lg font-medium">{userInput}</p>
+          <div className="card p-6 space-y-3">
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">意味：</p>
+              <p className="text-lg text-slate-800 dark:text-slate-100">{current.meaning}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">あなたの表現：</p>
+              <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{userInput}</p>
+            </div>
           </div>
           <div className="flex gap-3">
             <button
               onClick={submitAnswer}
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-[.98]"
             >
+              <Sparkles className="w-4 h-4" />
               LLM分析を依頼する
             </button>
-            <button
-              onClick={skipToReveal}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400"
-            >
+            <button onClick={skipToReveal} className="btn-ghost">
+              <Eye className="w-4 h-4" />
               分析なしで答えを見る
             </button>
           </div>
@@ -198,40 +205,38 @@ export default function PracticeSession() {
 
       {phase === "comparing" && (
         <div className="text-center py-8">
-          <p className="text-gray-500">分析中...</p>
+          <p className="text-slate-500 dark:text-slate-400">分析中...</p>
         </div>
       )}
 
       {phase === "result" && current && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-              <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">元の表現：</p>
-              <p className="text-lg font-bold">{current.japanese}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-900/20 p-4">
+              <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">元の表現：</p>
+              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{current.japanese}</p>
               {current.reading && (
-                <p className="text-sm text-gray-500">{current.reading}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{current.reading}</p>
               )}
             </div>
             {userInput && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20 p-4">
                 <p className="text-sm text-amber-600 dark:text-amber-400 mb-1">あなたの表現：</p>
-                <p className="text-lg font-bold">{userInput}</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{userInput}</p>
               </div>
             )}
           </div>
 
           {analysis && (
-            <div className="border rounded-lg p-6 dark:border-gray-700">
+            <div className="card p-6">
               <MarkdownRenderer content={analysis} />
             </div>
           )}
 
           <div className="flex gap-3">
-            <button
-              onClick={pickRandom}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
+            <button onClick={pickRandom} className="btn-primary">
               次の問題
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>

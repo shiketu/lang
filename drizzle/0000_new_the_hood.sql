@@ -24,6 +24,7 @@ CREATE TABLE "recordings" (
 	"id" text PRIMARY KEY NOT NULL,
 	"filename" text NOT NULL,
 	"topic" text,
+	"category" text,
 	"tags" text[] DEFAULT '{}' NOT NULL,
 	"created" text NOT NULL,
 	"duration" integer

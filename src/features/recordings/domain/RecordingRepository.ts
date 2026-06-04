@@ -5,7 +5,7 @@ export interface RecordingRepository {
   get(id: string): Promise<Recording | null>;
   save(
     file: File,
-    meta: { topic?: string; tags?: string[] }
+    meta: { topic?: string; category?: string; tags?: string[] }
   ): Promise<Recording>;
   getBlob(
     id: string

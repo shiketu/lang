@@ -6,6 +6,7 @@ import Link from "next/link";
 import EntryForm from "@/features/entries/components/EntryForm";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TagBadge from "@/components/TagBadge";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   TYPE_LABEL,
   TYPE_BADGE,
@@ -26,6 +27,7 @@ export default function EntryDetailPage({
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     fetch(`/api/entries/${id}`)
@@ -38,8 +40,7 @@ export default function EntryDetailPage({
       .finally(() => setLoading(false));
   }, [id]);
 
-  async function handleDelete() {
-    if (!confirm("このエントリーを削除しますか？")) return;
+  async function confirmDelete() {
     const res = await fetch(`/api/entries/${id}`, { method: "DELETE" });
     if (res.ok) {
       router.push("/lakehouse");
@@ -47,7 +48,7 @@ export default function EntryDetailPage({
     }
   }
 
-  if (loading) return <p className="text-gray-500">読み込み中...</p>;
+  if (loading) return <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>;
   if (!entry) return <p className="text-red-500">エントリーが見つかりません。</p>;
 
   if (editing) {
@@ -80,8 +81,8 @@ export default function EntryDetailPage({
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-2 mb-6 text-sm text-gray-500">
-        <Link href="/lakehouse" className="hover:text-gray-700">
+      <div className="flex items-center gap-2 mb-6 text-sm text-slate-500 dark:text-slate-400">
+        <Link href="/lakehouse" className="hover:text-slate-700 dark:hover:text-slate-200">
           言語データ
         </Link>
         <span>/</span>
@@ -91,15 +92,15 @@ export default function EntryDetailPage({
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">{entry.japanese}</h1>
-            {entry.reading && <p className="text-lg text-gray-500">{entry.reading}</p>}
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{entry.japanese}</h1>
+            {entry.reading && <p className="text-lg text-slate-500 dark:text-slate-400">{entry.reading}</p>}
           </div>
           <span className={`text-sm px-3 py-1 rounded font-medium ${TYPE_BADGE[entry.type]}`}>
             {TYPE_LABEL[entry.type] ?? entry.type}
           </span>
         </div>
 
-        <p className="text-lg">{entry.meaning}</p>
+        <p className="text-lg text-slate-700 dark:text-slate-200">{entry.meaning}</p>
 
         {(entry.purpose || entry.register) && (
           <div className="flex flex-wrap gap-2">
@@ -124,32 +125,39 @@ export default function EntryDetailPage({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+        <div className="grid grid-cols-2 gap-4 text-sm text-slate-500 dark:text-slate-400">
           <p>作成: {entry.created}</p>
           <p>更新: {entry.updated}</p>
         </div>
 
         {entry.content && (
-          <div className="border-t dark:border-gray-700 pt-4 mt-4">
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-4 mt-4">
             <MarkdownRenderer content={entry.content} />
           </div>
         )}
 
-        <div className="flex gap-3 pt-4 border-t dark:border-gray-700">
-          <button
-            onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+        <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <button onClick={() => setEditing(true)} className="btn-primary">
             編集する
           </button>
           <button
-            onClick={handleDelete}
-            className="px-4 py-2 text-red-600 hover:text-red-800"
+            onClick={() => setShowDelete(true)}
+            className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             削除する
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDelete}
+        title="このエントリーを削除しますか？"
+        message="この操作は取り消せません。"
+        confirmLabel="削除する"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDelete(false)}
+      />
     </div>
   );
 }

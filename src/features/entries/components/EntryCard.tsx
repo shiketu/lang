@@ -24,15 +24,15 @@ export default function EntryCard({ entry }: { entry: Entry }) {
   return (
     <Link
       href={`/lakehouse/${entry.id}`}
-      className="block border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-blue-400 hover:shadow-sm dark:hover:border-blue-500 transition-all"
+      className="card card-interactive block p-4 animate-fade-in-up hover:border-indigo-300 dark:hover:border-indigo-700"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-lg font-bold truncate">{entry.japanese}</p>
           {entry.reading && (
-            <p className="text-sm text-gray-500 truncate">{entry.reading}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{entry.reading}</p>
           )}
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
             {entry.meaning}
           </p>
         </div>
