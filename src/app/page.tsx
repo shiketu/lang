@@ -3,150 +3,187 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import {
-  Database,
-  BookOpen,
-  Edit3,
-  Video,
-  ListTodo,
-  Target,
-  type LucideIcon,
-} from "lucide-react";
-import TodoWidget from "@/features/todos/components/TodoWidget";
+import { Play, CheckCircle2, Flame } from "lucide-react";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
+import { ROUTINE_STEPS, dailyTheme, type RoutineStep } from "@/features/activity/routine";
+import { dayTotals, currentStreak } from "@/lib/streak";
+import { todayInTokyo } from "@/lib/today";
+import type { ActivityLog } from "@/features/activity/domain/Activity";
 
-interface Feature {
-  id: string;
-  href: string;
-  title: string;
-  desc: string;
-  icon: LucideIcon;
-  tile: string; // soft bg + text color
+function stepMetric(step: RoutineStep, today: string, dueCount: number, done: boolean): string {
+  switch (step.id) {
+    case "review":
+      return dueCount > 0 ? `${dueCount}件の復習` : "復習なし";
+    case "shadowing":
+      return "お手本と比較練習";
+    case "selftalk":
+      return `テーマ: ${dailyTheme(today)}`;
+    case "notes":
+      return done ? "記録済み" : "未記録";
+    default:
+      return "";
+  }
 }
 
-const FEATURES: Feature[] = [
-  { id: "lakehouse", href: "/lakehouse", title: "言語データ", desc: "単語・表現・例文を管理", icon: Database, tile: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400" },
-  { id: "notes", href: "/notes", title: "毎日ノート", desc: "毎日の表現や気づきを記録", icon: BookOpen, tile: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" },
-  { id: "practice", href: "/practice", title: "表現練習", desc: "表現力を鍛える", icon: Edit3, tile: "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400" },
-  { id: "video", href: "/video", title: "録画練習", desc: "発話を録画して確認", icon: Video, tile: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400" },
-  { id: "todos", href: "/todos", title: "学習計画", desc: "タスクと進捗を管理", icon: ListTodo, tile: "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400" },
-];
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 11) return "おはようございます";
-  if (h < 18) return "こんにちは";
-  return "こんばんは";
-}
-
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-export default function Dashboard() {
-  const [entryCount, setEntryCount] = useState<number | null>(null);
-  const [taskStat, setTaskStat] = useState<{ done: number; total: number } | null>(null);
+export default function HomePage() {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [dueCount, setDueCount] = useState(0);
+  const [reviewLoaded, setReviewLoaded] = useState(false);
+  const today = todayInTokyo();
 
   useEffect(() => {
-    fetch("/api/entries")
+    fetch("/api/activity")
       .then((r) => r.json())
-      .then((d) => setEntryCount(Array.isArray(d) ? d.length : 0))
-      .catch(() => setEntryCount(0));
-    fetch(`/api/todos/daily?date=${todayStr()}`)
+      .then((d) => setLogs(Array.isArray(d) ? d : []))
+      .catch(() => setLogs([]));
+    fetch("/api/review")
       .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d)) {
-          setTaskStat({ done: d.filter((t) => t.status === "done").length, total: d.length });
-        }
-      })
-      .catch(() => {});
+      .then((d) => setDueCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => setDueCount(0))
+      .finally(() => setReviewLoaded(true));
   }, []);
 
+  const totals = dayTotals(logs);
+  const streak = currentStreak(new Set(totals.keys()), today);
+
+  const todaysKinds = new Set(
+    logs.filter((l) => l.date === today && l.count > 0).map((l) => l.kind)
+  );
+  const steps = ROUTINE_STEPS.map((s) => ({
+    step: s,
+    // Review is "done" once you've graded something today, or when nothing is due.
+    done:
+      s.id === "review"
+        ? todaysKinds.has("review") || (reviewLoaded && dueCount === 0)
+        : s.doneKinds.some((k) => todaysKinds.has(k)),
+  }));
+  const doneCount = steps.filter((s) => s.done).length;
+  const activeIndex = steps.findIndex((s) => !s.done);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Welcome */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-            ダッシュボード
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            {greeting()}！今日も目標に向けて頑張りましょう。
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <StatChip
-            icon={Database}
-            tile="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
-            label="登録済み表現"
-            value={entryCount === null ? "…" : `${entryCount} 件`}
-          />
-          <StatChip
-            icon={Target}
-            tile="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-            label="今日のタスク"
-            value={taskStat ? `${taskStat.done}/${taskStat.total}` : "—"}
-          />
-        </div>
+    <div className="max-w-6xl mx-auto pb-12">
+      {/* Header: consistency over welcome */}
+      <div className="mb-8">
+        <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 text-xs font-bold px-2.5 py-1 rounded-full mb-3">
+          <Flame className="w-3.5 h-3.5" />
+          {streak > 0 ? `${streak}日連続学習中` : "今日から始めましょう"}
+        </span>
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+          今日も言語回路を鍛えましょう
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400">
+          反復と継続が、一番の近道です。今日のルーティンを始めましょう。
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: feature grid */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={f.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.25 }}
-            >
-              <Link href={f.href} className="card card-interactive p-6 flex flex-col h-full">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${f.tile}`}>
-                  <f.icon className="w-6 h-6" />
-                </div>
-                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">
-                  {f.title}
-                </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{f.desc}</p>
-              </Link>
-            </motion.div>
-          ))}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Left: the daily flow */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Play className="w-5 h-5 text-indigo-600 fill-current" />
+              今日のルーティン
+            </h2>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              完了: {doneCount}/{steps.length}
+            </span>
+          </div>
+
+          <div className="space-y-4 relative">
+            {/* Timeline line */}
+            <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-800 z-0 hidden sm:block" />
+
+            {steps.map(({ step, done }, index) => {
+              const isActive = index === activeIndex;
+              const Icon = step.icon;
+              return (
+                <motion.div
+                  key={step.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.08 }}
+                  className={`relative z-10 flex flex-col sm:flex-row gap-4 sm:gap-6 p-5 rounded-2xl border transition-all ${
+                    isActive
+                      ? "bg-white dark:bg-slate-900 border-indigo-400 shadow-md ring-4 ring-indigo-50 dark:ring-indigo-950/40"
+                      : done
+                      ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-70"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"
+                  }`}
+                >
+                  {/* Icon / status */}
+                  <div className="flex items-center sm:items-start shrink-0">
+                    <div
+                      className={`w-16 h-16 rounded-2xl flex items-center justify-center relative ${
+                        done ? "bg-slate-100 dark:bg-slate-800 text-slate-400" : step.accent
+                      }`}
+                    >
+                      {done ? (
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                      ) : (
+                        <Icon className="w-8 h-8" />
+                      )}
+                      {isActive && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <h3
+                        className={`text-lg font-bold ${
+                          done ? "text-slate-500 dark:text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"
+                        }`}
+                      >
+                        {step.title}
+                      </h3>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md self-start sm:self-auto shrink-0">
+                        {step.time}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{step.desc}</p>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full truncate">
+                        {stepMetric(step, today, dueCount, done)}
+                      </span>
+
+                      {done ? (
+                        <span className="px-4 py-2 rounded-xl text-emerald-600 dark:text-emerald-400 font-medium text-sm bg-emerald-50 dark:bg-emerald-950/40 shrink-0">
+                          完了済
+                        </span>
+                      ) : isActive ? (
+                        <Link
+                          href={step.href}
+                          className={`px-4 py-2 rounded-xl text-white font-medium text-sm flex items-center gap-2 shadow-sm transition-transform hover:scale-105 active:scale-95 shrink-0 ${step.btn}`}
+                        >
+                          <Play className="w-4 h-4 fill-current" /> 開始する
+                        </Link>
+                      ) : (
+                        <Link
+                          href={step.href}
+                          className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-medium text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
+                        >
+                          始める
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Right: today's tasks */}
+        {/* Right: consistency */}
         <div className="space-y-6">
-          <TodoWidget />
+          <ActivityHeatmap logs={logs} today={today} />
         </div>
       </div>
     </div>
-  );
-}
-
-function StatChip({
-  icon: Icon,
-  tile,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  tile: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="card p-3 flex items-center gap-3"
-    >
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tile}`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</p>
-        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</p>
-      </div>
-    </motion.div>
   );
 }

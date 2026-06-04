@@ -4,6 +4,12 @@ import { MarkdownNoteRepository } from "@/features/notes/infrastructure/noteRepo
 import { PostgresNoteRepository } from "@/features/notes/infrastructure/noteRepository.postgres";
 import { JsonTaskRepository } from "@/features/todos/infrastructure/taskRepository.json";
 import { PostgresTaskRepository } from "@/features/todos/infrastructure/taskRepository.postgres";
+import { JsonReviewRepository } from "@/features/review/infrastructure/reviewRepository.json";
+import { PostgresReviewRepository } from "@/features/review/infrastructure/reviewRepository.postgres";
+import { JsonActivityRepository } from "@/features/activity/infrastructure/activityRepository.json";
+import { PostgresActivityRepository } from "@/features/activity/infrastructure/activityRepository.postgres";
+import { JsonShadowingTargetRepository } from "@/features/shadowing/infrastructure/shadowingTargetRepository.json";
+import { PostgresShadowingTargetRepository } from "@/features/shadowing/infrastructure/shadowingTargetRepository.postgres";
 import { LocalBlobStorage } from "@/lib/storage/localBlobStorage";
 import { S3BlobStorage } from "@/lib/storage/s3BlobStorage";
 import { JsonMetadataStore } from "@/lib/storage/jsonMetadataStore";
@@ -13,6 +19,9 @@ import { AnthropicProvider } from "@/lib/llm/anthropic";
 import type { EntryRepository } from "@/features/entries/domain/EntryRepository";
 import type { NoteRepository } from "@/features/notes/domain/NoteRepository";
 import type { TaskRepository } from "@/features/todos/domain/TaskRepository";
+import type { ReviewRepository } from "@/features/review/domain/ReviewRepository";
+import type { ActivityRepository } from "@/features/activity/domain/Activity";
+import type { ShadowingTargetRepository } from "@/features/shadowing/domain/ShadowingTarget";
 import type { RecordingRepository } from "@/features/recordings/domain/RecordingRepository";
 import type { BlobStorageProvider } from "@/lib/storage/interfaces";
 import type { LLMProvider } from "@/lib/llm/interfaces";
@@ -21,6 +30,9 @@ import type {
   EntryStorageConfig,
   NoteStorageConfig,
   TaskStorageConfig,
+  ReviewStorageConfig,
+  ActivityStorageConfig,
+  ShadowingStorageConfig,
   BlobStorageConfig,
   MetadataStoreConfig,
   LLMConfig,
@@ -54,6 +66,37 @@ export function createTaskRepository(config: TaskStorageConfig): TaskRepository 
       return new JsonTaskRepository(config.filePath);
     case "postgres":
       return new PostgresTaskRepository();
+  }
+}
+
+export function createReviewRepository(config: ReviewStorageConfig): ReviewRepository {
+  switch (config.provider) {
+    case "json-file":
+      return new JsonReviewRepository(config.filePath);
+    case "postgres":
+      return new PostgresReviewRepository();
+  }
+}
+
+export function createActivityRepository(
+  config: ActivityStorageConfig
+): ActivityRepository {
+  switch (config.provider) {
+    case "json-file":
+      return new JsonActivityRepository(config.filePath);
+    case "postgres":
+      return new PostgresActivityRepository();
+  }
+}
+
+export function createShadowingTargetRepository(
+  config: ShadowingStorageConfig
+): ShadowingTargetRepository {
+  switch (config.provider) {
+    case "json-file":
+      return new JsonShadowingTargetRepository(config.filePath);
+    case "postgres":
+      return new PostgresShadowingTargetRepository();
   }
 }
 

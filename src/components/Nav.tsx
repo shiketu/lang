@@ -10,6 +10,8 @@ import {
   Edit3,
   Video,
   ListTodo,
+  BrainCircuit,
+  Mic,
   type LucideIcon,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
@@ -21,6 +23,8 @@ const ICONS: Record<string, LucideIcon> = {
   Edit3,
   Video,
   ListTodo,
+  BrainCircuit,
+  Mic,
 };
 
 export default function Nav() {

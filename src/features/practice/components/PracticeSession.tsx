@@ -59,6 +59,7 @@ export default function PracticeSession() {
         original: current.japanese,
         userInput: userInput.trim(),
         meaning: current.meaning,
+        entryId: current.id,
       }),
     });
     const data = await res.json();

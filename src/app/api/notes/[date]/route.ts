@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { getNote, saveNote, deleteNote } from "@/features/notes/application/service";
+import { logActivity } from "@/features/activity/application/service";
+import { todayInTokyo } from "@/lib/today";
 import { requireAuth } from "@/lib/auth";
 
 export async function GET(
@@ -25,6 +27,11 @@ export async function PUT(
   const { date } = await params;
   const body = await request.json();
   const note = await saveNote(date, body);
+
+  try {
+    await logActivity(todayInTokyo(), "note");
+  } catch {}
+
   return Response.json(note);
 }
 

@@ -47,12 +47,33 @@ export type TaskStorageConfig =
   | { provider: "json-file"; filePath: string }
   | { provider: "postgres" };
 
+// --- Review schedule storage ---
+
+export type ReviewStorageConfig =
+  | { provider: "json-file"; filePath: string }
+  | { provider: "postgres" };
+
+// --- Activity log storage ---
+
+export type ActivityStorageConfig =
+  | { provider: "json-file"; filePath: string }
+  | { provider: "postgres" };
+
+// --- Shadowing target storage ---
+
+export type ShadowingStorageConfig =
+  | { provider: "json-file"; filePath: string }
+  | { provider: "postgres" };
+
 // --- Full assembly ---
 
 export interface AppConfig {
   entries: EntryStorageConfig;
   notes: NoteStorageConfig;
   tasks: TaskStorageConfig;
+  review: ReviewStorageConfig;
+  activity: ActivityStorageConfig;
+  shadowing: ShadowingStorageConfig;
   blob: BlobStorageConfig;
   recordingMeta: MetadataStoreConfig;
   llm: LLMConfig;
@@ -85,6 +106,18 @@ export function resolveConfig(): AppConfig {
   const tasks: TaskStorageConfig = usePostgres
     ? { provider: "postgres" }
     : { provider: "json-file", filePath: path.join(CONTENT_DIR, "todos.json") };
+
+  const review: ReviewStorageConfig = usePostgres
+    ? { provider: "postgres" }
+    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "reviews.json") };
+
+  const activity: ActivityStorageConfig = usePostgres
+    ? { provider: "postgres" }
+    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "activity.json") };
+
+  const shadowing: ShadowingStorageConfig = usePostgres
+    ? { provider: "postgres" }
+    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "shadowing.json") };
 
   // Video files live in blob storage: S3 in production, local disk for offline dev.
   const blob: BlobStorageConfig = useS3
@@ -120,5 +153,5 @@ export function resolveConfig(): AppConfig {
           apiKey: process.env.ANTHROPIC_API_KEY,
         };
 
-  return { entries, notes, tasks, blob, recordingMeta, llm };
+  return { entries, notes, tasks, review, activity, shadowing, blob, recordingMeta, llm };
 }

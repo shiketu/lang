@@ -1,7 +1,7 @@
 import type { BlobStorageProvider, MetadataStore } from "@/lib/storage/interfaces";
 import type { Recording } from "../domain/Recording";
 import type { RecordingRepository } from "../domain/RecordingRepository";
-import { categoryFolder } from "./categoryFolder";
+import { recordingFolder } from "./categoryFolder";
 
 export class LocalRecordingRepository implements RecordingRepository {
   constructor(
@@ -11,11 +11,16 @@ export class LocalRecordingRepository implements RecordingRepository {
 
   async save(
     file: File,
-    meta: { topic?: string; category?: string; tags?: string[] }
+    meta: {
+      topic?: string;
+      category?: string;
+      tags?: string[];
+      shadowingTargetId?: string;
+    }
   ): Promise<Recording> {
     const id = crypto.randomUUID();
     const ext = file.name.split(".").pop() ?? "webm";
-    const key = `${categoryFolder(meta.category)}/${id}.${ext}`;
+    const key = `${recordingFolder(meta)}/${id}.${ext}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
     await this.blobStorage.put(key, buffer, file.type || "video/webm");
@@ -25,6 +30,7 @@ export class LocalRecordingRepository implements RecordingRepository {
       filename: key,
       topic: meta.topic,
       category: meta.category,
+      shadowingTargetId: meta.shadowingTargetId,
       tags: meta.tags ?? [],
       created: new Date().toISOString(),
     };

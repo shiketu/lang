@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   integer,
+  real,
   jsonb,
   primaryKey,
 } from "drizzle-orm/pg-core";
@@ -11,6 +12,8 @@ import type {
   Purpose,
   Register,
 } from "@/features/entries/domain/Entry";
+import type { ReviewKind } from "@/features/review/domain/Reviewable";
+import type { ActivityKind } from "@/features/activity/domain/Activity";
 
 export const entries = pgTable("entries", {
   id: text("id").primaryKey(),
@@ -57,7 +60,45 @@ export const recordings = pgTable("recordings", {
   filename: text("filename").notNull(),
   topic: text("topic"),
   category: text("category"),
+  referenceUrl: text("reference_url"),
+  shadowingTargetId: text("shadowing_target_id"),
   tags: text("tags").array().notNull().default([]),
   created: text("created").notNull(),
   duration: integer("duration"),
 });
+
+export const shadowingTargets = pgTable("shadowing_targets", {
+  id: text("id").primaryKey(),
+  referenceUrl: text("reference_url").notNull(),
+  videoId: text("video_id").notNull(),
+  title: text("title").notNull(),
+  segmentStart: real("segment_start").notNull(),
+  segmentEnd: real("segment_end").notNull(),
+  category: text("category"),
+  created: text("created").notNull(),
+});
+
+export const reviewSchedule = pgTable(
+  "review_schedule",
+  {
+    kind: text("kind").$type<ReviewKind>().notNull(),
+    refId: text("ref_id").notNull(),
+    ease: real("ease").notNull().default(2.5),
+    intervalDays: integer("interval_days").notNull().default(0),
+    repetitions: integer("repetitions").notNull().default(0),
+    due: text("due").notNull(),
+    lastReviewed: text("last_reviewed"),
+    created: text("created").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.refId] })]
+);
+
+export const activityLog = pgTable(
+  "activity_log",
+  {
+    date: text("date").notNull(),
+    kind: text("kind").$type<ActivityKind>().notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.date, t.kind] })]
+);
