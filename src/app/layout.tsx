@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider, Show } from "@clerk/nextjs";
 import Nav from "@/components/Nav";
 import Header from "@/components/Header";
+import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,7 +40,9 @@ export default function RootLayout({
             <Show when="signed-in">
               <Header />
             </Show>
-            <div className="flex-1 overflow-auto p-4 md:p-8">{children}</div>
+            <div className="flex-1 overflow-auto p-4 md:p-8">
+              <PageTransition>{children}</PageTransition>
+            </div>
           </main>
         </body>
       </html>
