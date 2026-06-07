@@ -1,5 +1,9 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+import { fmt } from "@/i18n";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -25,21 +29,16 @@ type ReviewItem = Reviewable & {
   target?: ShadowingTarget;
 };
 
-const KIND_META: Record<ReviewKind, { label: string; icon: typeof BrainCircuit; color: string }> = {
-  entry: { label: "表現の復習", icon: BrainCircuit, color: "text-blue-600 dark:text-blue-400" },
-  practice: { label: "表現練習の復習", icon: Mic, color: "text-violet-600 dark:text-violet-400" },
-  video: { label: "録画練習の復習", icon: VideoIcon, color: "text-rose-600 dark:text-rose-400" },
-  shadowing: { label: "シャドーイングの復習", icon: Mic, color: "text-violet-600 dark:text-violet-400" },
+const KIND_META: Record<ReviewKind, { icon: typeof BrainCircuit; color: string }> = {
+  entry: { icon: BrainCircuit, color: "text-blue-600 dark:text-blue-400" },
+  practice: { icon: Mic, color: "text-violet-600 dark:text-violet-400" },
+  video: { icon: VideoIcon, color: "text-rose-600 dark:text-rose-400" },
+  shadowing: { icon: Mic, color: "text-violet-600 dark:text-violet-400" },
 };
 
-const GRADES = [
-  { label: "もう一度", q: SM2_GRADES.again, cls: "bg-rose-600 hover:bg-rose-700" },
-  { label: "難しい", q: SM2_GRADES.hard, cls: "bg-amber-500 hover:bg-amber-600" },
-  { label: "普通", q: SM2_GRADES.good, cls: "bg-indigo-600 hover:bg-indigo-700" },
-  { label: "簡単", q: SM2_GRADES.easy, cls: "bg-emerald-600 hover:bg-emerald-700" },
-];
-
 export default function ReviewSession() {
+  const ws = useWs();
+  const dict = useDict();
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [idx, setIdx] = useState(0);
@@ -51,11 +50,24 @@ export default function ReviewSession() {
   const [comparing, setComparing] = useState(false);
 
   useEffect(() => {
-    fetch("/api/review")
+    apiFetch("/review")
       .then((r) => r.json())
       .then((d) => setItems(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
   }, []);
+
+  const kindLabels: Record<ReviewKind, string> = {
+    entry: dict.review.kindEntry,
+    practice: dict.review.kindPractice,
+    video: dict.review.kindVideo,
+    shadowing: dict.review.kindShadowing,
+  };
+  const grades = [
+    { label: dict.review.gradeAgain, q: SM2_GRADES.again, cls: "bg-rose-600 hover:bg-rose-700" },
+    { label: dict.review.gradeHard, q: SM2_GRADES.hard, cls: "bg-amber-500 hover:bg-amber-600" },
+    { label: dict.review.gradeGood, q: SM2_GRADES.good, cls: "bg-indigo-600 hover:bg-indigo-700" },
+    { label: dict.review.gradeEasy, q: SM2_GRADES.easy, cls: "bg-emerald-600 hover:bg-emerald-700" },
+  ];
 
   const total = items.length;
   const current = items[idx];
@@ -69,7 +81,7 @@ export default function ReviewSession() {
 
   async function grade(quality: number) {
     if (!current) return;
-    await fetch("/api/review", {
+    await apiFetch("/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind: current.kind, refId: current.refId, quality }),
@@ -81,7 +93,7 @@ export default function ReviewSession() {
   async function runCompare() {
     if (!current?.entry || !userInput.trim()) return;
     setComparing(true);
-    const res = await fetch("/api/practice/compare", {
+    const res = await apiFetch("/practice/compare", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -106,15 +118,13 @@ export default function ReviewSession() {
       <div className="card p-10 text-center">
         <PartyPopper className="w-12 h-12 mx-auto text-emerald-500 mb-4" />
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-          {total === 0 ? "今日の復習はありません" : "今日の復習は完了！"}
+          {total === 0 ? dict.review.emptyTitle : dict.review.doneTitle}
         </h2>
         <p className="text-slate-500 dark:text-slate-400 mb-6">
-          {total === 0
-            ? "表現を積み重ねたり練習したりすると、ここに復習が現れます。"
-            : "お疲れさまでした。継続が一番の近道です。"}
+          {total === 0 ? dict.review.emptyDesc : dict.review.doneDesc}
         </p>
-        <Link href="/" className="btn-primary inline-flex">
-          ホームに戻る
+        <Link href={`/${ws}`} className="btn-primary inline-flex">
+          {dict.review.backHome}
         </Link>
       </div>
     );
@@ -131,7 +141,7 @@ export default function ReviewSession() {
         <div className="flex items-center justify-between mb-2 text-sm">
           <span className={`flex items-center gap-2 font-medium ${meta.color}`}>
             <Icon className="w-4 h-4" />
-            {meta.label}
+            {kindLabels[current.kind]}
           </span>
           <span className="text-slate-500 dark:text-slate-400">
             {idx + 1} / {total}
@@ -160,7 +170,7 @@ export default function ReviewSession() {
           {current.kind === "entry" && current.entry && (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400 mb-1">次の意味を日本語で？</p>
+                <p className="text-xs text-slate-400 mb-1">{dict.review.recallPrompt}</p>
                 <p className="text-xl font-medium text-slate-800 dark:text-slate-100">
                   {current.entry.meaning}
                 </p>
@@ -168,7 +178,7 @@ export default function ReviewSession() {
               {!revealed ? (
                 <button onClick={() => setRevealed(true)} className="btn-ghost border border-slate-200 dark:border-slate-700">
                   <Eye className="w-4 h-4" />
-                  答えを見る
+                  {dict.review.reveal}
                 </button>
               ) : (
                 <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
@@ -192,7 +202,7 @@ export default function ReviewSession() {
           {current.kind === "practice" && current.entry && (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400 mb-1">この意味を、自分の言葉で表現してみましょう</p>
+                <p className="text-xs text-slate-400 mb-1">{dict.review.producePrompt}</p>
                 <p className="text-xl font-medium text-slate-800 dark:text-slate-100">
                   {current.entry.meaning}
                 </p>
@@ -204,7 +214,7 @@ export default function ReviewSession() {
                     onChange={(e) => setUserInput(e.target.value)}
                     rows={3}
                     className="field resize-y"
-                    placeholder="あなたの日本語表現を入力..."
+                    placeholder={dict.review.inputPlaceholder}
                     autoFocus
                   />
                   <div className="flex gap-3">
@@ -214,18 +224,18 @@ export default function ReviewSession() {
                       className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-[.98] disabled:opacity-50"
                     >
                       <Sparkles className="w-4 h-4" />
-                      {comparing ? "分析中..." : "AI分析する"}
+                      {comparing ? dict.review.analyzing : dict.review.aiAnalyze}
                     </button>
                     <button onClick={() => setRevealed(true)} className="btn-ghost">
                       <Eye className="w-4 h-4" />
-                      答えを見る
+                      {dict.review.reveal}
                     </button>
                   </div>
                 </>
               ) : (
                 <div className="space-y-3">
                   <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
-                    <p className="text-xs text-slate-400 mb-1">模範の表現</p>
+                    <p className="text-xs text-slate-400 mb-1">{dict.review.modelExpr}</p>
                     <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
                       {current.entry.japanese}
                     </p>
@@ -247,23 +257,27 @@ export default function ReviewSession() {
           {current.kind === "video" && current.recording && (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400 mb-1">過去の録画を見直して、今の実力を確かめましょう</p>
+                <p className="text-xs text-slate-400 mb-1">{dict.review.videoPrompt}</p>
                 <p className="text-lg font-medium text-slate-800 dark:text-slate-100">
-                  {current.recording.topic || "無題の録画"}
+                  {current.recording.topic || dict.review.untitledVideo}
                 </p>
                 <p className="text-xs text-slate-400">
-                  {new Date(current.recording.created).toLocaleDateString("ja-JP")} の録画
+                  {fmt(dict.review.recordedOn, {
+                    date: new Date(current.recording.created).toLocaleDateString(
+                      ws === "en" ? "en-US" : "ja-JP"
+                    ),
+                  })}
                 </p>
               </div>
               <video
-                src={`/api/recordings/${current.recording.id}`}
+                src={`/api/${ws}/recordings/${current.recording.id}`}
                 controls
                 playsInline
                 className="w-full rounded-xl"
               />
-              <Link href="/video" className="btn-ghost inline-flex border border-slate-200 dark:border-slate-700">
+              <Link href={`/${ws}/video`} className="btn-ghost inline-flex border border-slate-200 dark:border-slate-700">
                 <VideoIcon className="w-4 h-4" />
-                もう一度録画する
+                {dict.review.recordAgain}
               </Link>
             </div>
           )}
@@ -272,7 +286,7 @@ export default function ReviewSession() {
           {current.kind === "shadowing" && current.target && (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400 mb-1">お手本をもう一度シャドーイングしてみましょう</p>
+                <p className="text-xs text-slate-400 mb-1">{dict.review.shadowingPrompt}</p>
                 <p className="text-lg font-medium text-slate-800 dark:text-slate-100">
                   {current.target.title}
                 </p>
@@ -285,11 +299,11 @@ export default function ReviewSession() {
                 className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800"
               />
               <Link
-                href={`/shadowing?target=${current.target.id}`}
+                href={`/${ws}/shadowing?target=${current.target.id}`}
                 className="btn-ghost inline-flex border border-slate-200 dark:border-slate-700"
               >
                 <Mic className="w-4 h-4" />
-                もう一度練習する
+                {dict.review.practiceAgain}
               </Link>
             </div>
           )}
@@ -299,7 +313,7 @@ export default function ReviewSession() {
       {/* Grade buttons — entry/practice need reveal first; video/shadowing always available */}
       {(current.kind === "video" || current.kind === "shadowing" || revealed) && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {GRADES.map((g) => (
+          {grades.map((g) => (
             <button
               key={g.label}
               onClick={() => grade(g.q)}

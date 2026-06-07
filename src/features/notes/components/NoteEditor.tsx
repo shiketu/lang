@@ -1,5 +1,9 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+import { fmt } from "@/i18n";
+
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Save, Sparkles, X } from "lucide-react";
@@ -10,11 +14,7 @@ import type { ExtractedEntry } from "../domain/ExtractedEntry";
 
 type Candidate = ExtractedEntry & { selected: boolean };
 
-const TYPE_OPTIONS: { value: ExtractedEntry["type"]; label: string }[] = [
-  { value: "vocabulary", label: "単語" },
-  { value: "expression", label: "表現" },
-  { value: "sentence", label: "例文" },
-];
+const TYPE_VALUES: ExtractedEntry["type"][] = ["vocabulary", "expression", "sentence"];
 
 function formatLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -32,9 +32,9 @@ function shiftDate(date: string, days: number): string {
   return formatLocalDate(new Date(y, m - 1, d + days));
 }
 
-function formatDateLabel(date: string): string {
+function formatDateLabel(date: string, locale: string): string {
   const d = new Date(date + "T00:00:00");
-  return d.toLocaleDateString("ja-JP", {
+  return d.toLocaleDateString(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -43,6 +43,8 @@ function formatDateLabel(date: string): string {
 }
 
 export default function NoteEditor() {
+  const ws = useWs();
+  const dict = useDict();
   const [date, setDate] = useState(todayStr);
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -61,7 +63,7 @@ export default function NoteEditor() {
 
   // Load list of all notes
   useEffect(() => {
-    fetch("/api/notes")
+    apiFetch("/notes")
       .then((r) => r.json())
       .then(setNoteList);
   }, []);
@@ -69,7 +71,7 @@ export default function NoteEditor() {
   // Load note for current date
   const loadNote = useCallback(async (d: string) => {
     setLoaded(false);
-    const res = await fetch(`/api/notes/${d}`);
+    const res = await apiFetch(`/notes/${d}`);
     if (res.ok) {
       const note: Note = await res.json();
       setContent(note.content);
@@ -87,7 +89,7 @@ export default function NoteEditor() {
   }, [date, loadNote]);
 
   function navigateTo(d: string) {
-    if (dirty && !confirm("未保存の変更があります。破棄しますか？")) return;
+    if (dirty && !confirm(dict.notes.discardConfirm)) return;
     setDate(d);
     setPreview(false);
   }
@@ -103,7 +105,7 @@ export default function NoteEditor() {
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch(`/api/notes/${date}`, {
+    const res = await apiFetch(`/notes/${date}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, tags }),
@@ -111,7 +113,7 @@ export default function NoteEditor() {
     if (res.ok) {
       setDirty(false);
       // Refresh note list
-      const listRes = await fetch("/api/notes");
+      const listRes = await apiFetch("/notes");
       if (listRes.ok) setNoteList(await listRes.json());
     }
     setSaving(false);
@@ -120,7 +122,7 @@ export default function NoteEditor() {
   async function handleExtract() {
     // Extraction reads the note from the server, so persist edits first.
     if (dirty) {
-      await fetch(`/api/notes/${date}`, {
+      await apiFetch(`/notes/${date}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content, tags }),
@@ -128,7 +130,7 @@ export default function NoteEditor() {
       setDirty(false);
     }
     setExtracting(true);
-    const res = await fetch(`/api/notes/${date}/extract`, { method: "POST" });
+    const res = await apiFetch(`/notes/${date}/extract`, { method: "POST" });
     setExtracting(false);
     if (res.ok) {
       const items: ExtractedEntry[] = await res.json();
@@ -149,7 +151,7 @@ export default function NoteEditor() {
       .map(({ selected: _selected, ...c }) => c);
     if (selected.length === 0) return;
     setImporting(true);
-    const res = await fetch("/api/entries/bulk", {
+    const res = await apiFetch("/entries/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ entries: selected }),
@@ -159,7 +161,7 @@ export default function NoteEditor() {
       const data = await res.json();
       setModalOpen(false);
       setCandidates([]);
-      alert(`${data.count} 件の条目を言語データに追加しました。`);
+      alert(fmt(dict.notes.importedAlert, { count: data.count }));
     }
   }
 
@@ -175,18 +177,18 @@ export default function NoteEditor() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigateTo(shiftDate(date, -1))}
-            aria-label="前の日"
+            aria-label={dict.notes.prevDay}
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {formatDateLabel(date)}
+            {formatDateLabel(date, ws === "en" ? "en-US" : "ja-JP")}
           </h2>
           <button
             onClick={() => navigateTo(shiftDate(date, 1))}
             disabled={isFuture}
-            aria-label="次の日"
+            aria-label={dict.notes.nextDay}
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
@@ -196,11 +198,11 @@ export default function NoteEditor() {
               onClick={() => navigateTo(todayStr())}
               className="px-3 py-1.5 text-sm rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60 transition-colors"
             >
-              今日
+              {dict.notes.today}
             </button>
           )}
           {dirty && (
-            <span className="text-xs text-amber-600 dark:text-amber-400">未保存</span>
+            <span className="text-xs text-amber-600 dark:text-amber-400">{dict.notes.unsaved}</span>
           )}
         </div>
 
@@ -214,7 +216,7 @@ export default function NoteEditor() {
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            編集
+            {dict.notes.editTab}
           </button>
           <button
             onClick={() => setPreview(true)}
@@ -224,19 +226,19 @@ export default function NoteEditor() {
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            プレビュー
+            {dict.notes.previewTab}
           </button>
         </div>
 
         {/* Content */}
         {!loaded ? (
-          <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>
+          <p className="text-slate-500 dark:text-slate-400">{dict.notes.loading}</p>
         ) : preview ? (
           <div className="min-h-[400px] card p-4">
             {content ? (
               <MarkdownRenderer content={content} />
             ) : (
-              <p className="text-slate-400">内容がありません。</p>
+              <p className="text-slate-400">{dict.notes.empty}</p>
             )}
           </div>
         ) : (
@@ -248,14 +250,14 @@ export default function NoteEditor() {
             }}
             rows={18}
             className="field font-mono resize-y"
-            placeholder={`## 今日の表現\n\n- 食べ放題（たべほうだい）- all-you-can-eat\n  - この店は食べ放題で有名です。\n\n## メモ\n...`}
+            placeholder={dict.notes.editorPlaceholder}
           />
         )}
 
         {/* Tags */}
         <div>
           <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-200">
-            タグ
+            {dict.notes.tags}
           </label>
           <div className="flex gap-2 mb-2">
             <input
@@ -269,14 +271,14 @@ export default function NoteEditor() {
                 }
               }}
               className="field flex-1"
-              placeholder="タグを入力してEnter"
+              placeholder={dict.notes.tagPlaceholder}
             />
             <button
               type="button"
               onClick={addTag}
               className="px-3 py-2 text-sm rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
-              追加
+              {dict.notes.addTag}
             </button>
           </div>
           <div className="flex flex-wrap gap-1">
@@ -298,16 +300,16 @@ export default function NoteEditor() {
         <div className="flex gap-3">
           <button onClick={handleSave} disabled={saving || !dirty} className="btn-primary">
             <Save className="w-4 h-4" />
-            {saving ? "保存中..." : "保存する"}
+            {saving ? dict.notes.saving : dict.notes.save}
           </button>
           <button
             onClick={handleExtract}
             disabled={extracting || !content.trim()}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-            title="このノートからAIで表現を抽出し、条目として追加します"
+            title={dict.notes.extractTooltip}
           >
             <Sparkles className="w-4 h-4" />
-            {extracting ? "抽出中..." : "AIで条目を抽出"}
+            {extracting ? dict.notes.extracting : dict.notes.extract}
           </button>
         </div>
       </div>
@@ -315,10 +317,10 @@ export default function NoteEditor() {
       {/* Sidebar: recent notes */}
       <div>
         <h3 className="text-sm font-bold mb-3 text-slate-500 dark:text-slate-400">
-          ノート一覧
+          {dict.notes.listHeading}
         </h3>
         {noteList.length === 0 ? (
-          <p className="text-sm text-slate-400">ノートはまだありません。</p>
+          <p className="text-sm text-slate-400">{dict.notes.noNotes}</p>
         ) : (
           <div className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
             {noteList.map((note) => (
@@ -333,7 +335,7 @@ export default function NoteEditor() {
               >
                 <p className="font-medium">{note.date}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {note.content.split("\n").find((l) => l.trim())?.replace(/^#+\s*/, "") || "空"}
+                  {note.content.split("\n").find((l) => l.trim())?.replace(/^#+\s*/, "") || dict.notes.emptyNote}
                 </p>
               </button>
             ))}
@@ -352,7 +354,7 @@ export default function NoteEditor() {
             transition={{ duration: 0.15 }}
           >
             <button
-              aria-label="閉じる"
+              aria-label={dict.common.close}
               className="absolute inset-0 bg-slate-900/50 dark:bg-black/60 backdrop-blur-sm cursor-default"
               onClick={() => setModalOpen(false)}
             />
@@ -368,11 +370,11 @@ export default function NoteEditor() {
               <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-violet-500" />
-                  抽出された条目（{selectedCount} 件選択中）
+                  {fmt(dict.notes.modalTitle, { n: selectedCount })}
                 </h3>
                 <button
                   onClick={() => setModalOpen(false)}
-                  aria-label="閉じる"
+                  aria-label={dict.common.close}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -382,7 +384,7 @@ export default function NoteEditor() {
               <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
                 {candidates.length === 0 ? (
                   <p className="text-slate-500 py-8 text-center">
-                    抽出できる表現が見つかりませんでした。
+                    {dict.notes.noCandidates}
                   </p>
                 ) : (
                   candidates.map((c, i) => (
@@ -412,9 +414,9 @@ export default function NoteEditor() {
                           }
                           className="field w-auto py-1 text-sm"
                         >
-                          {TYPE_OPTIONS.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
+                          {TYPE_VALUES.map((v) => (
+                            <option key={v} value={v}>
+                              {dict.entryMeta.type[v]}
                             </option>
                           ))}
                         </select>
@@ -425,7 +427,7 @@ export default function NoteEditor() {
                           onChange={(e) =>
                             updateCandidate(i, { japanese: e.target.value })
                           }
-                          placeholder="日本語"
+                          placeholder={dict.notes.jp}
                           className="field py-1 text-sm"
                         />
                         <input
@@ -433,7 +435,7 @@ export default function NoteEditor() {
                           onChange={(e) =>
                             updateCandidate(i, { reading: e.target.value })
                           }
-                          placeholder="読み"
+                          placeholder={dict.notes.reading}
                           className="field py-1 text-sm"
                         />
                         <input
@@ -441,7 +443,7 @@ export default function NoteEditor() {
                           onChange={(e) =>
                             updateCandidate(i, { meaning: e.target.value })
                           }
-                          placeholder="意味"
+                          placeholder={dict.notes.meaning}
                           className="field py-1 text-sm"
                         />
                       </div>
@@ -455,7 +457,7 @@ export default function NoteEditor() {
                               .filter(Boolean),
                           })
                         }
-                        placeholder="タグ（カンマ区切り）"
+                        placeholder={dict.notes.tagsComma}
                         className="field py-1 text-sm w-full mt-2"
                       />
                     </div>
@@ -465,14 +467,14 @@ export default function NoteEditor() {
 
               <div className="flex justify-end gap-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800">
                 <button onClick={() => setModalOpen(false)} className="btn-ghost">
-                  キャンセル
+                  {dict.notes.cancel}
                 </button>
                 <button
                   onClick={handleImport}
                   disabled={importing || selectedCount === 0}
                   className="btn-primary"
                 >
-                  {importing ? "追加中..." : `${selectedCount} 件を追加`}
+                  {importing ? dict.notes.importing : fmt(dict.notes.importN, { n: selectedCount })}
                 </button>
               </div>
             </motion.div>

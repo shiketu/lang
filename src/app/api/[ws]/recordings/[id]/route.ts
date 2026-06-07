@@ -1,0 +1,55 @@
+import { NextRequest } from "next/server";
+import {
+  getRecordingBlob,
+  getRecordingSignedUrl,
+  deleteRecording,
+} from "@/features/recordings/application/service";
+import { requireAuth } from "@/lib/auth";
+import { withWorkspaceRoute } from "@/lib/workspace";
+
+export const GET = withWorkspaceRoute(async (
+  _request: NextRequest,
+  { params }: { params: Promise<{ ws: string; id: string }> }
+) => {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
+  const { id } = await params;
+
+  // Prefer a presigned URL (S3): the browser fetches directly from the CDN,
+  // supporting range requests / seeking and offloading bandwidth.
+  const signedUrl = await getRecordingSignedUrl(id);
+  if (signedUrl) {
+    return Response.redirect(signedUrl, 307);
+  }
+
+  // Fallback (local disk): stream the blob through the server.
+  const result = await getRecordingBlob(id);
+
+  if (!result) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  return new Response(new Uint8Array(result.data), {
+    headers: {
+      "Content-Type": result.contentType,
+      "Content-Length": result.data.length.toString(),
+    },
+  });
+});
+
+export const DELETE = withWorkspaceRoute(async (
+  _request: NextRequest,
+  { params }: { params: Promise<{ ws: string; id: string }> }
+) => {
+  const unauthorized = await requireAuth();
+  if (unauthorized) return unauthorized;
+
+  const { id } = await params;
+  const deleted = await deleteRecording(id);
+
+  if (!deleted) {
+    return new Response("Not found", { status: 404 });
+  }
+  return Response.json({ success: true });
+});

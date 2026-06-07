@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { eq, and, or, ilike, desc, arrayContains, sql, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { entries } from "@/lib/db/schema";
 import type { Entry, EntryFilter } from "../domain/Entry";
 import type { EntryRepository } from "../domain/EntryRepository";
@@ -24,8 +25,10 @@ function toEntry(row: Row): Entry {
 }
 
 export class PostgresEntryRepository implements EntryRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async list(filter?: EntryFilter): Promise<Entry[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const conds: SQL[] = [];
 
     if (filter?.type) conds.push(eq(entries.type, filter.type));
@@ -53,7 +56,7 @@ export class PostgresEntryRepository implements EntryRepository {
   }
 
   async get(id: string): Promise<Entry | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(entries)
@@ -63,7 +66,7 @@ export class PostgresEntryRepository implements EntryRepository {
   }
 
   async create(data: Omit<Entry, "id" | "created" | "updated">): Promise<Entry> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const id = crypto.randomUUID();
     const now = new Date().toISOString().split("T")[0];
     const entry: Entry = {
@@ -90,7 +93,7 @@ export class PostgresEntryRepository implements EntryRepository {
   }
 
   async update(id: string, data: Partial<Entry>): Promise<Entry | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const existing = await this.get(id);
     if (!existing) return null;
     const now = new Date().toISOString().split("T")[0];
@@ -113,7 +116,7 @@ export class PostgresEntryRepository implements EntryRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const res = await db
       .delete(entries)
       .where(eq(entries.id, id))
@@ -122,7 +125,7 @@ export class PostgresEntryRepository implements EntryRepository {
   }
 
   async getAllTags(): Promise<string[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const res = await db.execute(
       sql`SELECT DISTINCT unnest(tags) AS tag FROM entries ORDER BY tag`
     );

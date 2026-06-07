@@ -4,9 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 
 export default function Header() {
   const router = useRouter();
+  const ws = useWs();
+  const dict = useDict();
   const [q, setQ] = useState("");
 
   return (
@@ -19,15 +23,16 @@ export default function Header() {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && q.trim()) {
-              router.push(`/lakehouse?q=${encodeURIComponent(q.trim())}`);
+              router.push(`/${ws}/lakehouse?q=${encodeURIComponent(q.trim())}`);
             }
           }}
-          placeholder="単語や表現を検索…"
+          placeholder={dict.common.searchPlaceholder}
           className="bg-transparent border-none outline-none text-sm w-full text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
         />
       </div>
 
       <div className="flex items-center gap-4">
+        <WorkspaceSwitcher />
         <UserButton />
       </div>
     </header>

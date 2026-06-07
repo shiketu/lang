@@ -1,11 +1,13 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useDict } from "@/i18n/I18nProvider";
+import { fmt } from "@/i18n";
+
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, Circle, Pencil, Trash2, Plus } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { Task, TaskSchedule, TaskWithStatus, TaskStatus } from "../domain/Task";
-
-const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
 function formatLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -18,12 +20,10 @@ function todayStr(): string {
   return formatLocalDate(new Date());
 }
 
-function scheduleLabel(schedule: TaskSchedule): string {
-  if (schedule.type === "daily") return "毎日";
-  return "毎週 " + schedule.days.map((d) => DAY_LABELS[d]).join("・");
-}
-
 export default function TodoList() {
+  const dict = useDict();
+  const DAY_LABELS = dict.todos.dayLabels;
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dailyTasks, setDailyTasks] = useState<TaskWithStatus[]>([]);
   const [date] = useState(todayStr);
@@ -38,10 +38,15 @@ export default function TodoList() {
   const [editWeeklyDays, setEditWeeklyDays] = useState<number[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  function scheduleLabel(schedule: TaskSchedule): string {
+    if (schedule.type === "daily") return dict.todos.daily;
+    return dict.todos.weeklyPrefix + schedule.days.map((d) => DAY_LABELS[d]).join(", ");
+  }
+
   const loadTasks = useCallback(async () => {
     const [allRes, dailyRes] = await Promise.all([
-      fetch("/api/todos"),
-      fetch(`/api/todos/daily?date=${date}`),
+      apiFetch("/todos"),
+      apiFetch(`/todos/daily?date=${date}`),
     ]);
     if (allRes.ok) setTasks(await allRes.json());
     if (dailyRes.ok) setDailyTasks(await dailyRes.json());
@@ -59,7 +64,7 @@ export default function TodoList() {
         ? { type: "daily" }
         : { type: "weekly", days: weeklyDays.sort() };
 
-    await fetch("/api/todos", {
+    await apiFetch("/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: title.trim(), schedule }),
@@ -71,7 +76,7 @@ export default function TodoList() {
 
   async function confirmDelete() {
     if (!deleteId) return;
-    await fetch(`/api/todos/${deleteId}`, { method: "DELETE" });
+    await apiFetch(`/todos/${deleteId}`, { method: "DELETE" });
     setDeleteId(null);
     loadTasks();
   }
@@ -92,7 +97,7 @@ export default function TodoList() {
         ? { type: "daily" }
         : { type: "weekly", days: editWeeklyDays.sort() };
 
-    await fetch(`/api/todos/${editingId}`, {
+    await apiFetch(`/todos/${editingId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle.trim(), schedule }),
@@ -103,7 +108,7 @@ export default function TodoList() {
 
   async function toggleStatus(taskId: string, current: TaskStatus) {
     const next: TaskStatus = current === "done" ? "todo" : "done";
-    await fetch("/api/todos/daily", {
+    await apiFetch("/todos/daily", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, taskId, status: next }),
@@ -127,18 +132,18 @@ export default function TodoList() {
       <div>
         <div className="flex items-center gap-3 mb-4">
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            今日のタスク
+            {dict.todos.todayHeading}
           </h2>
           {dailyTasks.length > 0 && (
             <span className="text-sm text-slate-500 dark:text-slate-400">
-              {doneCount}/{dailyTasks.length} 完了
+              {fmt(dict.todos.progressDone, { done: doneCount, total: dailyTasks.length })}
             </span>
           )}
         </div>
 
         {dailyTasks.length === 0 ? (
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            今日のタスクはありません。右側でタスクを追加してください。
+            {dict.todos.noTasksToday}
           </p>
         ) : (
           <div className="space-y-2">
@@ -174,7 +179,7 @@ export default function TodoList() {
                       done ? "text-emerald-500" : "text-slate-400"
                     }`}
                   >
-                    {done ? "完了" : "未完成"}
+                    {done ? dict.todos.complete : dict.todos.incomplete}
                   </span>
                 </button>
               );
@@ -186,7 +191,7 @@ export default function TodoList() {
       {/* Task management */}
       <div>
         <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100">
-          タスク管理
+          {dict.todos.management}
         </h2>
 
         {/* Create form */}
@@ -195,7 +200,7 @@ export default function TodoList() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="新しいタスク..."
+            placeholder={dict.todos.newTaskPlaceholder}
             className="field"
           />
           <div className="flex gap-2 items-center">
@@ -206,8 +211,8 @@ export default function TodoList() {
               }
               className="field w-auto"
             >
-              <option value="daily">毎日</option>
-              <option value="weekly">毎週</option>
+              <option value="daily">{dict.todos.daily}</option>
+              <option value="weekly">{dict.todos.weekly}</option>
             </select>
             {scheduleType === "weekly" && (
               <div className="flex gap-1">
@@ -237,7 +242,7 @@ export default function TodoList() {
             className="btn-primary"
           >
             <Plus className="w-4 h-4" />
-            追加
+            {dict.todos.add}
           </button>
         </form>
 
@@ -260,8 +265,8 @@ export default function TodoList() {
                     }
                     className="field w-auto text-sm"
                   >
-                    <option value="daily">毎日</option>
-                    <option value="weekly">毎週</option>
+                    <option value="daily">{dict.todos.daily}</option>
+                    <option value="weekly">{dict.todos.weekly}</option>
                   </select>
                   {editScheduleType === "weekly" && (
                     <div className="flex gap-1">
@@ -286,10 +291,10 @@ export default function TodoList() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={saveEdit} className="btn-primary">
-                    保存
+                    {dict.todos.save}
                   </button>
                   <button onClick={() => setEditingId(null)} className="btn-ghost">
-                    キャンセル
+                    {dict.todos.cancel}
                   </button>
                 </div>
               </div>
@@ -309,14 +314,14 @@ export default function TodoList() {
                 <div className="flex gap-1">
                   <button
                     onClick={() => startEdit(task)}
-                    aria-label="編集"
+                    aria-label={dict.todos.edit}
                     className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteId(task.id)}
-                    aria-label="削除"
+                    aria-label={dict.common.deleteAction}
                     className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -330,9 +335,9 @@ export default function TodoList() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="このタスクを削除しますか？"
-        message="この操作は取り消せません。"
-        confirmLabel="削除する"
+        title={dict.todos.deleteConfirmTitle}
+        message={dict.common.irreversible}
+        confirmLabel={dict.common.deleteAction}
         danger
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}

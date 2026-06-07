@@ -46,8 +46,6 @@ export function currentStreak(activeDates: Set<string>, today: string): number {
   return streak;
 }
 
-const MONTHS = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
-
 /**
  * Builds a GitHub-style calendar grid: `weeks` columns × 7 rows (Sun..Sat),
  * ending on the Saturday of `today`'s week. Future cells are null. Month labels
@@ -57,13 +55,13 @@ export function buildCalendar(
   totals: Map<string, number>,
   today: string,
   weeks: number
-): { columns: (HeatCell | null)[][]; monthLabels: { col: number; label: string }[] } {
+): { columns: (HeatCell | null)[][]; monthLabels: { col: number; month: number }[] } {
   const endOfWeek = addDays(today, 6 - dow(today)); // Saturday of current week
   const totalCells = weeks * 7;
   const start = addDays(endOfWeek, -(totalCells - 1)); // a Sunday
 
   const columns: (HeatCell | null)[][] = [];
-  const monthLabels: { col: number; label: string }[] = [];
+  const monthLabels: { col: number; month: number }[] = [];
   let prevMonth = -1;
 
   for (let col = 0; col < weeks; col++) {
@@ -83,7 +81,7 @@ export function buildCalendar(
     const topDate = addDays(start, col * 7);
     const month = Number(topDate.split("-")[1]) - 1;
     if (month !== prevMonth) {
-      monthLabels.push({ col, label: MONTHS[month] });
+      monthLabels.push({ col, month });
       prevMonth = month;
     }
   }

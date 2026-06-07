@@ -1,13 +1,13 @@
-import { reviewRepository } from "@/composition";
+import { getReviewRepository } from "@/composition";
 import { applySM2, SM2_DEFAULT } from "@/lib/sm2";
 import type { Reviewable, ReviewKind } from "../domain/Reviewable";
 
 export function getDueReviews(today: string, limit?: number): Promise<Reviewable[]> {
-  return reviewRepository.listDue(today, limit);
+  return getReviewRepository().listDue(today, limit);
 }
 
 export function getDueCount(today: string): Promise<number> {
-  return reviewRepository.dueCount(today);
+  return getReviewRepository().dueCount(today);
 }
 
 /** Schedules a fresh reviewable (idempotent — keeps existing schedule if present). */
@@ -16,7 +16,7 @@ export function enqueueReview(
   refId: string,
   due: string
 ): Promise<void> {
-  return reviewRepository.enqueue(kind, refId, due);
+  return getReviewRepository().enqueue(kind, refId, due);
 }
 
 /** Applies an SM-2 grade and persists the next schedule. Auto-creates on first grade. */
@@ -26,7 +26,7 @@ export async function gradeReview(
   quality: number,
   today: string
 ): Promise<Reviewable> {
-  const existing = await reviewRepository.get(kind, refId);
+  const existing = await getReviewRepository().get(kind, refId);
   const base: Reviewable =
     existing ?? {
       kind,
@@ -37,6 +37,6 @@ export async function gradeReview(
     };
   const next = applySM2(base, quality, today);
   const saved: Reviewable = { ...base, ...next, lastReviewed: today };
-  await reviewRepository.save(saved);
+  await getReviewRepository().save(saved);
   return saved;
 }

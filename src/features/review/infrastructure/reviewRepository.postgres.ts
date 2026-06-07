@@ -1,5 +1,6 @@
 import { and, eq, lte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { reviewSchedule } from "@/lib/db/schema";
 import type { Reviewable, ReviewKind } from "../domain/Reviewable";
 import type { ReviewRepository } from "../domain/ReviewRepository";
@@ -20,8 +21,10 @@ function toReviewable(r: Row): Reviewable {
 }
 
 export class PostgresReviewRepository implements ReviewRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async listDue(today: string, limit = 50): Promise<Reviewable[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(reviewSchedule)
@@ -32,7 +35,7 @@ export class PostgresReviewRepository implements ReviewRepository {
   }
 
   async get(kind: ReviewKind, refId: string): Promise<Reviewable | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(reviewSchedule)
@@ -42,7 +45,7 @@ export class PostgresReviewRepository implements ReviewRepository {
   }
 
   async enqueue(kind: ReviewKind, refId: string, due: string): Promise<void> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db
       .insert(reviewSchedule)
       .values({
@@ -59,7 +62,7 @@ export class PostgresReviewRepository implements ReviewRepository {
   }
 
   async save(item: Reviewable): Promise<void> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db
       .insert(reviewSchedule)
       .values({
@@ -85,7 +88,7 @@ export class PostgresReviewRepository implements ReviewRepository {
   }
 
   async dueCount(today: string): Promise<number> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select({ c: sql<number>`count(*)` })
       .from(reviewSchedule)

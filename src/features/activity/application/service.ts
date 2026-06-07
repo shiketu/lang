@@ -1,4 +1,4 @@
-import { activityRepository } from "@/composition";
+import { getActivityRepository } from "@/composition";
 import type { ActivityKind, ActivityLog } from "../domain/Activity";
 
 export function logActivity(
@@ -6,13 +6,13 @@ export function logActivity(
   kind: ActivityKind,
   count = 1
 ): Promise<void> {
-  return activityRepository.log(date, kind, count);
+  return getActivityRepository().log(date, kind, count);
 }
 
 export function getActivityRange(from: string, to: string): Promise<ActivityLog[]> {
-  return activityRepository.range(from, to);
+  return getActivityRepository().range(from, to);
 }
 
 export function getActivityForDate(date: string): Promise<ActivityLog[]> {
-  return activityRepository.forDate(date);
+  return getActivityRepository().forDate(date);
 }

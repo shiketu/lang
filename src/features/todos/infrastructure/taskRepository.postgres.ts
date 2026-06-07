@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { tasks, taskCompletions } from "@/lib/db/schema";
 import type { Task, TaskSchedule, TaskStatus } from "../domain/Task";
 import type { TaskRepository } from "../domain/TaskRepository";
@@ -17,8 +18,10 @@ function toTask(row: Row): Task {
 }
 
 export class PostgresTaskRepository implements TaskRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async listTasks(): Promise<Task[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db.select().from(tasks);
     return rows.map(toTask);
   }
@@ -27,7 +30,7 @@ export class PostgresTaskRepository implements TaskRepository {
     title: string;
     schedule: TaskSchedule;
   }): Promise<Task> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const task: Task = {
       id: crypto.randomUUID(),
       title: data.title,
@@ -47,7 +50,7 @@ export class PostgresTaskRepository implements TaskRepository {
     id: string,
     data: { title?: string; schedule?: TaskSchedule }
   ): Promise<Task | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const set: Partial<Row> = {};
     if (data.title !== undefined) set.title = data.title;
     if (data.schedule !== undefined) set.schedule = data.schedule;
@@ -70,7 +73,7 @@ export class PostgresTaskRepository implements TaskRepository {
   }
 
   async deleteTask(id: string): Promise<boolean> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db.delete(taskCompletions).where(eq(taskCompletions.taskId, id));
     const res = await db
       .delete(tasks)
@@ -80,7 +83,7 @@ export class PostgresTaskRepository implements TaskRepository {
   }
 
   async getCompletions(date: string): Promise<Record<string, TaskStatus>> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(taskCompletions)
@@ -95,7 +98,7 @@ export class PostgresTaskRepository implements TaskRepository {
     taskId: string,
     status: TaskStatus
   ): Promise<void> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db
       .insert(taskCompletions)
       .values({ date, taskId, status })
@@ -106,7 +109,7 @@ export class PostgresTaskRepository implements TaskRepository {
   }
 
   async removeCompletion(date: string, taskId: string): Promise<void> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db
       .delete(taskCompletions)
       .where(

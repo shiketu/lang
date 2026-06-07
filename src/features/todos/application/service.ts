@@ -1,26 +1,26 @@
-import { taskRepository } from "@/composition";
+import { getTaskRepository } from "@/composition";
 import type { Task, TaskSchedule, TaskStatus, TaskWithStatus } from "../domain/Task";
 
 export function listTasks(): Promise<Task[]> {
-  return taskRepository.listTasks();
+  return getTaskRepository().listTasks();
 }
 
 export function createTask(data: {
   title: string;
   schedule: TaskSchedule;
 }): Promise<Task> {
-  return taskRepository.createTask(data);
+  return getTaskRepository().createTask(data);
 }
 
 export function updateTask(
   id: string,
   data: { title?: string; schedule?: TaskSchedule }
 ): Promise<Task | null> {
-  return taskRepository.updateTask(id, data);
+  return getTaskRepository().updateTask(id, data);
 }
 
 export function deleteTask(id: string): Promise<boolean> {
-  return taskRepository.deleteTask(id);
+  return getTaskRepository().deleteTask(id);
 }
 
 export function setCompletion(
@@ -28,14 +28,14 @@ export function setCompletion(
   taskId: string,
   status: TaskStatus
 ): Promise<void> {
-  return taskRepository.setCompletion(date, taskId, status);
+  return getTaskRepository().setCompletion(date, taskId, status);
 }
 
 export function removeCompletion(
   date: string,
   taskId: string
 ): Promise<void> {
-  return taskRepository.removeCompletion(date, taskId);
+  return getTaskRepository().removeCompletion(date, taskId);
 }
 
 /** Return tasks active on a specific date, with their completion status */
@@ -43,8 +43,8 @@ export async function getTasksForDate(
   date: string
 ): Promise<TaskWithStatus[]> {
   const [tasks, completions] = await Promise.all([
-    taskRepository.listTasks(),
-    taskRepository.getCompletions(date),
+    getTaskRepository().listTasks(),
+    getTaskRepository().getCompletions(date),
   ]);
 
   const [y, m, d] = date.split("-").map(Number);

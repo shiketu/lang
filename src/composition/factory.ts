@@ -16,6 +16,7 @@ import { JsonMetadataStore } from "@/lib/storage/jsonMetadataStore";
 import { LocalRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.local";
 import { PostgresRecordingRepository } from "@/features/recordings/infrastructure/recordingRepository.postgres";
 import { AnthropicProvider } from "@/lib/llm/anthropic";
+import type { Workspace } from "@/lib/workspace";
 import type { EntryRepository } from "@/features/entries/domain/EntryRepository";
 import type { NoteRepository } from "@/features/notes/domain/NoteRepository";
 import type { TaskRepository } from "@/features/todos/domain/TaskRepository";
@@ -39,7 +40,7 @@ import type {
   AppConfig,
 } from "./config";
 
-export function createEntryRepository(config: EntryStorageConfig): EntryRepository {
+export function createEntryRepository(config: EntryStorageConfig, ws: Workspace): EntryRepository {
   switch (config.provider) {
     case "markdown":
       return new MarkdownEntryRepository({
@@ -47,63 +48,65 @@ export function createEntryRepository(config: EntryStorageConfig): EntryReposito
         fallbackDir: config.fallbackDir,
       });
     case "postgres":
-      return new PostgresEntryRepository();
+      return new PostgresEntryRepository(ws);
   }
 }
 
-export function createNoteRepository(config: NoteStorageConfig): NoteRepository {
+export function createNoteRepository(config: NoteStorageConfig, ws: Workspace): NoteRepository {
   switch (config.provider) {
     case "markdown":
       return new MarkdownNoteRepository(config.dir);
     case "postgres":
-      return new PostgresNoteRepository();
+      return new PostgresNoteRepository(ws);
   }
 }
 
-export function createTaskRepository(config: TaskStorageConfig): TaskRepository {
+export function createTaskRepository(config: TaskStorageConfig, ws: Workspace): TaskRepository {
   switch (config.provider) {
     case "json-file":
       return new JsonTaskRepository(config.filePath);
     case "postgres":
-      return new PostgresTaskRepository();
+      return new PostgresTaskRepository(ws);
   }
 }
 
-export function createReviewRepository(config: ReviewStorageConfig): ReviewRepository {
+export function createReviewRepository(config: ReviewStorageConfig, ws: Workspace): ReviewRepository {
   switch (config.provider) {
     case "json-file":
       return new JsonReviewRepository(config.filePath);
     case "postgres":
-      return new PostgresReviewRepository();
+      return new PostgresReviewRepository(ws);
   }
 }
 
 export function createActivityRepository(
-  config: ActivityStorageConfig
+  config: ActivityStorageConfig,
+  ws: Workspace
 ): ActivityRepository {
   switch (config.provider) {
     case "json-file":
       return new JsonActivityRepository(config.filePath);
     case "postgres":
-      return new PostgresActivityRepository();
+      return new PostgresActivityRepository(ws);
   }
 }
 
 export function createShadowingTargetRepository(
-  config: ShadowingStorageConfig
+  config: ShadowingStorageConfig,
+  ws: Workspace
 ): ShadowingTargetRepository {
   switch (config.provider) {
     case "json-file":
       return new JsonShadowingTargetRepository(config.filePath);
     case "postgres":
-      return new PostgresShadowingTargetRepository();
+      return new PostgresShadowingTargetRepository(ws);
   }
 }
 
-export function createRecordingRepository(config: AppConfig): RecordingRepository {
+export function createRecordingRepository(config: AppConfig, ws: Workspace): RecordingRepository {
   const blobStorage = createBlobStorage(config.blob);
   if (config.recordingMeta.provider === "postgres") {
-    return new PostgresRecordingRepository(blobStorage);
+    return new PostgresRecordingRepository(blobStorage, ws);
   }
   const metadataStore = createMetadataStore<Recording>(config.recordingMeta);
   return new LocalRecordingRepository(blobStorage, metadataStore);

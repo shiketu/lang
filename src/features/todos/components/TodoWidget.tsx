@@ -1,5 +1,8 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -12,12 +15,14 @@ function todayStr(): string {
 }
 
 export default function TodoWidget() {
+  const ws = useWs();
+  const dict = useDict();
   const [tasks, setTasks] = useState<TaskWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const date = todayStr();
 
   useEffect(() => {
-    fetch(`/api/todos/daily?date=${date}`)
+    apiFetch(`/todos/daily?date=${date}`)
       .then((r) => r.json())
       .then((d) => setTasks(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
@@ -25,7 +30,7 @@ export default function TodoWidget() {
 
   async function toggleStatus(taskId: string, current: TaskStatus) {
     const next: TaskStatus = current === "done" ? "todo" : "done";
-    await fetch("/api/todos/daily", {
+    await apiFetch("/todos/daily", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, taskId, status: next }),
@@ -43,10 +48,10 @@ export default function TodoWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ListTodo className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">今日のタスク</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{dict.todos.widgetTitle}</h3>
         </div>
-        <Link href="/todos" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
-          管理 →
+        <Link href={`/${ws}/todos`} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+          {dict.todos.manage}
         </Link>
       </div>
 
@@ -58,15 +63,15 @@ export default function TodoWidget() {
         </div>
       ) : total === 0 ? (
         <div className="text-center py-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">タスクがありません。</p>
-          <Link href="/todos" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-            学習計画を立てる →
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{dict.todos.noTasks}</p>
+          <Link href={`/${ws}/todos`} className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+            {dict.todos.makePlan}
           </Link>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between mb-2 text-sm">
-            <span className="text-slate-500 dark:text-slate-400">進捗状況</span>
+            <span className="text-slate-500 dark:text-slate-400">{dict.todos.progress}</span>
             <span className="font-medium text-indigo-600 dark:text-indigo-400">
               {doneCount}/{total}
             </span>
@@ -82,7 +87,7 @@ export default function TodoWidget() {
 
           {allDone && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-3 text-center">
-              🎉 今日のタスクをすべて完了しました！
+              {dict.todos.allDone}
             </p>
           )}
 

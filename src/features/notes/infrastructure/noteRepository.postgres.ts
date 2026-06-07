@@ -1,5 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { notes } from "@/lib/db/schema";
 import type { Note } from "../domain/Note";
 import type { NoteRepository } from "../domain/NoteRepository";
@@ -17,14 +18,16 @@ function toNote(row: Row): Note {
 }
 
 export class PostgresNoteRepository implements NoteRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async list(): Promise<Note[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db.select().from(notes).orderBy(desc(notes.date));
     return rows.map(toNote);
   }
 
   async get(date: string): Promise<Note | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(notes)
@@ -37,7 +40,7 @@ export class PostgresNoteRepository implements NoteRepository {
     date: string,
     data: { content: string; tags?: string[] }
   ): Promise<Note> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const now = new Date().toISOString();
     const tags = data.tags ?? [];
     const rows = await db
@@ -58,7 +61,7 @@ export class PostgresNoteRepository implements NoteRepository {
   }
 
   async delete(date: string): Promise<boolean> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const res = await db
       .delete(notes)
       .where(eq(notes.date, date))

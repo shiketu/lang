@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { recordings } from "@/lib/db/schema";
 import type { BlobStorageProvider } from "@/lib/storage/interfaces";
 import type { Recording } from "../domain/Recording";
@@ -24,10 +25,13 @@ function toRecording(row: Row): Recording {
 }
 
 export class PostgresRecordingRepository implements RecordingRepository {
-  constructor(private blobStorage: BlobStorageProvider) {}
+  constructor(
+    private blobStorage: BlobStorageProvider,
+    private ws: Workspace = "ja"
+  ) {}
 
   async list(): Promise<Recording[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(recordings)
@@ -36,7 +40,7 @@ export class PostgresRecordingRepository implements RecordingRepository {
   }
 
   async get(id: string): Promise<Recording | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(recordings)
@@ -54,7 +58,7 @@ export class PostgresRecordingRepository implements RecordingRepository {
       shadowingTargetId?: string;
     }
   ): Promise<Recording> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const id = crypto.randomUUID();
     const ext = file.name.split(".").pop() ?? "webm";
     const key = `${recordingFolder(meta)}/${id}.${ext}`;
@@ -104,7 +108,7 @@ export class PostgresRecordingRepository implements RecordingRepository {
     const meta = await this.get(id);
     if (!meta) return false;
     await this.blobStorage.delete(meta.filename);
-    const db = getDb();
+    const db = getDb(this.ws);
     await db.delete(recordings).where(eq(recordings.id, id));
     return true;
   }

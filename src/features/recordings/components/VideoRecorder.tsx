@@ -1,5 +1,8 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Video, Circle, Square, Folder, Trash2, Save, X } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -7,9 +10,10 @@ import type { Recording } from "../domain/Recording";
 
 const ALL = "__all__";
 const NONE = "__none__";
-const UNCATEGORIZED_LABEL = "未分類";
 
 export default function VideoRecorder() {
+  const ws = useWs();
+  const dict = useDict();
   const videoRef = useRef<HTMLVideoElement>(null);
   const playbackRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -27,7 +31,7 @@ export default function VideoRecorder() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/recordings")
+    apiFetch("/recordings")
       .then((r) => r.json())
       .then((d) => setRecordings(Array.isArray(d) ? d : []));
   }, []);
@@ -53,9 +57,9 @@ export default function VideoRecorder() {
       setStream(s);
       setError("");
     } catch {
-      setError("カメラへのアクセスが許可されていません。");
+      setError(dict.video.cameraDenied);
     }
-  }, []);
+  }, [dict]);
 
   function stopCamera() {
     stream?.getTracks().forEach((t) => t.stop());
@@ -93,7 +97,7 @@ export default function VideoRecorder() {
     if (topic) formData.append("topic", topic);
     if (category.trim()) formData.append("category", category.trim());
 
-    const res = await fetch("/api/recordings", {
+    const res = await apiFetch("/recordings", {
       method: "POST",
       body: formData,
     });
@@ -106,7 +110,7 @@ export default function VideoRecorder() {
       setCategory("");
       setStatus("idle");
     } else {
-      setError("保存に失敗しました。");
+      setError(dict.video.saveFailed);
       setStatus("preview");
     }
   }
@@ -118,7 +122,7 @@ export default function VideoRecorder() {
 
   async function confirmDelete() {
     if (!deleteId) return;
-    const res = await fetch(`/api/recordings/${deleteId}`, { method: "DELETE" });
+    const res = await apiFetch(`/recordings/${deleteId}`, { method: "DELETE" });
     if (res.ok) {
       setRecordings((prev) => prev.filter((r) => r.id !== deleteId));
       if (selectedRecording === deleteId) setSelectedRecording(null);
@@ -183,7 +187,7 @@ export default function VideoRecorder() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Video className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">録画</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{dict.video.recordHeading}</h3>
           </div>
 
           {showLiveCamera && (
@@ -196,11 +200,11 @@ export default function VideoRecorder() {
                   playsInline
                   className={`w-full h-full rounded-xl object-cover ${stream ? "" : "hidden"}`}
                 />
-                {!stream && <p className="text-slate-400 text-sm">カメラ未起動</p>}
+                {!stream && <p className="text-slate-400 text-sm">{dict.video.cameraOff}</p>}
                 {status === "recording" && (
                   <div className="absolute top-3 right-3 flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full text-sm">
                     <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    録画中
+                    {dict.video.recording}
                   </div>
                 )}
               </div>
@@ -208,7 +212,7 @@ export default function VideoRecorder() {
               {status === "idle" && !stream && (
                 <button onClick={startCamera} className="btn-primary">
                   <Video className="w-4 h-4" />
-                  カメラを起動する
+                  {dict.video.startCamera}
                 </button>
               )}
               {status === "idle" && stream && (
@@ -217,13 +221,13 @@ export default function VideoRecorder() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-700 active:scale-[.98]"
                 >
                   <Circle className="w-4 h-4 fill-current" />
-                  録画を開始する
+                  {dict.video.startRecording}
                 </button>
               )}
               {status === "recording" && (
                 <button onClick={stopRecording} className="btn-ghost border border-slate-200 dark:border-slate-700">
                   <Square className="w-4 h-4 fill-current" />
-                  録画を停止する
+                  {dict.video.stopRecording}
                 </button>
               )}
             </div>
@@ -239,12 +243,12 @@ export default function VideoRecorder() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 className="field"
-                placeholder="トピック（任意）"
+                placeholder={dict.video.topicPlaceholder}
               />
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
                   <Folder className="w-4 h-4" />
-                  カテゴリ
+                  {dict.video.category}
                 </div>
                 {categories.named.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -273,44 +277,44 @@ export default function VideoRecorder() {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="field"
-                  placeholder="新しいカテゴリ名（任意）"
+                  placeholder={dict.video.newCategoryPlaceholder}
                 />
               </div>
               <div className="flex gap-3">
                 <button onClick={saveRecording} className="btn-primary">
                   <Save className="w-4 h-4" />
-                  保存する
+                  {dict.video.save}
                 </button>
                 <button onClick={discardRecording} className="btn-ghost">
                   <X className="w-4 h-4" />
-                  破棄する
+                  {dict.video.discard}
                 </button>
               </div>
             </div>
           )}
 
-          {status === "saving" && <p className="text-slate-500 text-sm">保存中...</p>}
+          {status === "saving" && <p className="text-slate-500 text-sm">{dict.video.saving}</p>}
         </div>
 
         {/* Recordings list */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Folder className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">録画一覧</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{dict.video.listHeading}</h3>
           </div>
 
           {recordings.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400 text-sm">録画はまだありません。</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">{dict.video.noRecordings}</p>
           ) : (
             <>
               {/* Folder filter */}
               <div className="flex flex-wrap gap-2 mb-3">
-                <FolderPill value={ALL} label="すべて" count={recordings.length} />
+                <FolderPill value={ALL} label={dict.video.all} count={recordings.length} />
                 {categories.named.map(([name, count]) => (
                   <FolderPill key={name} value={name} label={name} count={count} />
                 ))}
                 {categories.uncategorized > 0 && (
-                  <FolderPill value={NONE} label={UNCATEGORIZED_LABEL} count={categories.uncategorized} />
+                  <FolderPill value={NONE} label={dict.video.uncategorized} count={categories.uncategorized} />
                 )}
               </div>
 
@@ -331,7 +335,7 @@ export default function VideoRecorder() {
                         className="flex-1 min-w-0 text-left p-3"
                       >
                         <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                          {rec.topic || "無題"}
+                          {rec.topic || dict.video.untitled}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                           {rec.category && (
@@ -340,12 +344,12 @@ export default function VideoRecorder() {
                               {rec.category}
                             </span>
                           )}
-                          <span>{new Date(rec.created).toLocaleString("ja-JP")}</span>
+                          <span>{new Date(rec.created).toLocaleString(ws === "en" ? "en-US" : "ja-JP")}</span>
                         </div>
                       </button>
                       <button
                         onClick={() => setDeleteId(rec.id)}
-                        aria-label="削除"
+                        aria-label={dict.common.deleteAction}
                         className="shrink-0 mr-2 p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white dark:hover:bg-slate-800 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -360,7 +364,7 @@ export default function VideoRecorder() {
           {selectedRecording && (
             <div className="mt-4">
               <video
-                src={`/api/recordings/${selectedRecording}`}
+                src={`/api/${ws}/recordings/${selectedRecording}`}
                 controls
                 playsInline
                 className="w-full rounded-xl"
@@ -372,9 +376,9 @@ export default function VideoRecorder() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="この録画を削除しますか？"
-        message="動画は完全に削除され、元に戻せません。"
-        confirmLabel="削除する"
+        title={dict.video.deleteTitle}
+        message={dict.video.deleteMsg}
+        confirmLabel={dict.common.deleteAction}
         danger
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}

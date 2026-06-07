@@ -1,21 +1,21 @@
-import { noteRepository } from "@/composition";
+import { getNoteRepository } from "@/composition";
 import type { Note } from "../domain/Note";
 
 export function listNotes(): Promise<Note[]> {
-  return noteRepository.list();
+  return getNoteRepository().list();
 }
 
 export function getNote(date: string): Promise<Note | null> {
-  return noteRepository.get(date);
+  return getNoteRepository().get(date);
 }
 
 export function saveNote(
   date: string,
   data: { content: string; tags?: string[] }
 ): Promise<Note> {
-  return noteRepository.save(date, data);
+  return getNoteRepository().save(date, data);
 }
 
 export function deleteNote(date: string): Promise<boolean> {
-  return noteRepository.delete(date);
+  return getNoteRepository().delete(date);
 }

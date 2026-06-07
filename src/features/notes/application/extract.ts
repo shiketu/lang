@@ -1,4 +1,6 @@
-import { noteRepository, llm } from "@/composition";
+import { getNoteRepository, llm } from "@/composition";
+import { getWorkspace } from "@/lib/workspace";
+import { getDictionary, fmt } from "@/i18n";
 import type { EntryType } from "@/features/entries/domain/Entry";
 import type { ExtractedEntry } from "../domain/ExtractedEntry";
 
@@ -7,31 +9,11 @@ const VALID_TYPES: EntryType[] = ["vocabulary", "expression", "sentence"];
 export async function extractEntriesFromNote(
   date: string
 ): Promise<ExtractedEntry[]> {
-  const note = await noteRepository.get(date);
+  const note = await getNoteRepository().get(date);
   if (!note || !note.content.trim()) return [];
 
-  const prompt = `あなたは日本語学習アシスタントです。以下は学習者が書いた日本語学習ノート（Markdown）です。
-このノートから、学習価値のある日本語の「単語・表現・例文」を抽出してください。
-
-出力は必ず JSON 配列のみ（説明文なし）。各要素は次の形式：
-{
-  "type": "vocabulary" | "expression" | "sentence",
-  "japanese": "日本語の語句",
-  "reading": "ひらがなの読み（あれば）",
-  "meaning": "中国語（簡体字）の意味",
-  "tags": ["関連タグ"]
-}
-
-ルール：
-- type は単語なら vocabulary、慣用表現なら expression、文なら sentence
-- meaning は中国語（簡体字）で簡潔に
-- reading は漢字を含む場合のみ。なければ空文字
-- 抽出対象がなければ空配列 []
-- JSON 以外は一切出力しない
-
---- ノート本文 ---
-${note.content}
---- ここまで ---`;
+  const dict = getDictionary(getWorkspace());
+  const prompt = fmt(dict.prompts.extract, { content: note.content });
 
   const raw = await llm.generateText(prompt, 2048);
   return parseCandidates(raw);

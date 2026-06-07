@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { shadowingTargets } from "@/lib/db/schema";
 import type {
   ShadowingTarget,
@@ -23,8 +24,10 @@ function toTarget(r: Row): ShadowingTarget {
 }
 
 export class PostgresShadowingTargetRepository implements ShadowingTargetRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async list(): Promise<ShadowingTarget[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(shadowingTargets)
@@ -33,7 +36,7 @@ export class PostgresShadowingTargetRepository implements ShadowingTargetReposit
   }
 
   async get(id: string): Promise<ShadowingTarget | null> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(shadowingTargets)
@@ -45,7 +48,7 @@ export class PostgresShadowingTargetRepository implements ShadowingTargetReposit
   async create(
     data: Omit<ShadowingTarget, "id" | "created">
   ): Promise<ShadowingTarget> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const target: ShadowingTarget = {
       ...data,
       id: crypto.randomUUID(),
@@ -65,7 +68,7 @@ export class PostgresShadowingTargetRepository implements ShadowingTargetReposit
   }
 
   async delete(id: string): Promise<boolean> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const res = await db
       .delete(shadowingTargets)
       .where(eq(shadowingTargets.id, id))

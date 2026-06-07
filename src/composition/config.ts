@@ -1,10 +1,9 @@
 import path from "path";
+import type { Workspace } from "@/lib/workspace";
 
 // --- Path resolution ---
 
 const PROJECT_ROOT = path.resolve(/*turbopackIgnore: true*/ process.cwd());
-const CONTENT_DIR = path.join(PROJECT_ROOT, "content");
-const RECORDINGS_DIR = path.join(PROJECT_ROOT, "recordings");
 
 // --- Entry storage ---
 
@@ -79,10 +78,16 @@ export interface AppConfig {
   llm: LLMConfig;
 }
 
-export function resolveConfig(): AppConfig {
-  // When DATABASE_URL is set, structured data goes to Postgres.
+export function resolveConfig(ws: Workspace): AppConfig {
+  // Each workspace has its own database + storage namespace.
+  const suffix = ws === "en" ? "-en" : "";
+  const contentDir = path.join(PROJECT_ROOT, `content${suffix}`);
+  const recordingsDir = path.join(PROJECT_ROOT, `recordings${suffix}`);
+
+  // When the workspace's DATABASE_URL is set, structured data goes to Postgres.
   // Otherwise fall back to local file-based storage (offline dev).
-  const usePostgres = !!process.env.DATABASE_URL;
+  const dbUrl = ws === "en" ? process.env.DATABASE_URL_EN : process.env.DATABASE_URL;
+  const usePostgres = !!dbUrl;
   // Use S3 when explicitly requested or when a bucket is configured.
   const useS3 = process.env.BLOB_PROVIDER === "s3" || !!process.env.S3_BUCKET;
   const llmProvider = process.env.LLM_PROVIDER ?? "anthropic";
@@ -92,44 +97,47 @@ export function resolveConfig(): AppConfig {
     : {
         provider: "markdown",
         typeDirs: {
-          vocabulary: path.join(CONTENT_DIR, "vocabulary"),
-          expression: path.join(CONTENT_DIR, "expressions"),
-          sentence: path.join(CONTENT_DIR, "sentences"),
+          vocabulary: path.join(contentDir, "vocabulary"),
+          expression: path.join(contentDir, "expressions"),
+          sentence: path.join(contentDir, "sentences"),
         },
-        fallbackDir: CONTENT_DIR,
+        fallbackDir: contentDir,
       };
 
   const notes: NoteStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "markdown", dir: path.join(CONTENT_DIR, "notes") };
+    : { provider: "markdown", dir: path.join(contentDir, "notes") };
 
   const tasks: TaskStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "todos.json") };
+    : { provider: "json-file", filePath: path.join(contentDir, "todos.json") };
 
   const review: ReviewStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "reviews.json") };
+    : { provider: "json-file", filePath: path.join(contentDir, "reviews.json") };
 
   const activity: ActivityStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "activity.json") };
+    : { provider: "json-file", filePath: path.join(contentDir, "activity.json") };
 
   const shadowing: ShadowingStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(CONTENT_DIR, "shadowing.json") };
+    : { provider: "json-file", filePath: path.join(contentDir, "shadowing.json") };
 
   // Video files live in blob storage: S3 in production, local disk for offline dev.
+  // Each workspace gets its own key prefix / directory.
+  const s3Base = process.env.S3_PREFIX ?? "videos";
   const blob: BlobStorageConfig = useS3
     ? {
         provider: "s3",
         bucket: process.env.S3_BUCKET!,
         region: process.env.AWS_REGION ?? "ap-northeast-1",
-        prefix: process.env.S3_PREFIX ?? "videos",
+        // ja keeps the original prefix (zero-regression); only en is namespaced.
+        prefix: ws === "en" ? `${s3Base}/en` : s3Base,
       }
     : {
         provider: "local",
-        baseDir: RECORDINGS_DIR,
+        baseDir: recordingsDir,
         urlPrefix: "/api/recordings/file",
       };
 
@@ -137,7 +145,7 @@ export function resolveConfig(): AppConfig {
     ? { provider: "postgres" }
     : {
         provider: "json-file",
-        filePath: path.join(RECORDINGS_DIR, "_recordings.json"),
+        filePath: path.join(recordingsDir, "_recordings.json"),
       };
 
   const llm: LLMConfig =

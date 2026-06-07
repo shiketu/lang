@@ -1,18 +1,18 @@
-import { recordingRepository } from "@/composition";
+import { getRecordingRepository } from "@/composition";
 import type { Recording } from "../domain/Recording";
 
 export function listRecordings(): Promise<Recording[]> {
-  return recordingRepository.list();
+  return getRecordingRepository().list();
 }
 
 /** Practice attempts belonging to a shadowing target, newest first. */
 export async function listRecordingsByTarget(targetId: string): Promise<Recording[]> {
-  const all = await recordingRepository.list();
+  const all = await getRecordingRepository().list();
   return all.filter((r) => r.shadowingTargetId === targetId);
 }
 
 export function getRecording(id: string): Promise<Recording | null> {
-  return recordingRepository.get(id);
+  return getRecordingRepository().get(id);
 }
 
 export function saveRecording(
@@ -24,17 +24,17 @@ export function saveRecording(
     shadowingTargetId?: string;
   }
 ): Promise<Recording> {
-  return recordingRepository.save(file, meta);
+  return getRecordingRepository().save(file, meta);
 }
 
 export function getRecordingBlob(id: string) {
-  return recordingRepository.getBlob(id);
+  return getRecordingRepository().getBlob(id);
 }
 
 export function getRecordingSignedUrl(id: string): Promise<string | null> {
-  return recordingRepository.getSignedUrl(id);
+  return getRecordingRepository().getSignedUrl(id);
 }
 
 export function deleteRecording(id: string): Promise<boolean> {
-  return recordingRepository.delete(id);
+  return getRecordingRepository().delete(id);
 }

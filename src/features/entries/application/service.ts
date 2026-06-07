@@ -1,31 +1,31 @@
-import { entryRepository } from "@/composition";
+import { getEntryRepository } from "@/composition";
 import type { Entry, EntryFilter } from "../domain/Entry";
 
 export function listEntries(filter?: EntryFilter): Promise<Entry[]> {
-  return entryRepository.list(filter);
+  return getEntryRepository().list(filter);
 }
 
 export function getEntry(id: string): Promise<Entry | null> {
-  return entryRepository.get(id);
+  return getEntryRepository().get(id);
 }
 
 export function createEntry(
   data: Omit<Entry, "id" | "created" | "updated">
 ): Promise<Entry> {
-  return entryRepository.create(data);
+  return getEntryRepository().create(data);
 }
 
 export function updateEntry(
   id: string,
   data: Partial<Entry>
 ): Promise<Entry | null> {
-  return entryRepository.update(id, data);
+  return getEntryRepository().update(id, data);
 }
 
 export function deleteEntry(id: string): Promise<boolean> {
-  return entryRepository.delete(id);
+  return getEntryRepository().delete(id);
 }
 
 export function getAllTags(): Promise<string[]> {
-  return entryRepository.getAllTags();
+  return getEntryRepository().getAllTags();
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDays } from "lucide-react";
+import { useDict, useWs } from "@/i18n/I18nProvider";
 import { dayTotals, buildCalendar } from "@/lib/streak";
 import type { ActivityLog } from "@/features/activity/domain/Activity";
 
@@ -23,6 +24,12 @@ export default function ActivityHeatmap({
   today: string;
   weeks?: number;
 }) {
+  const dict = useDict();
+  const ws = useWs();
+  const monthName = (month: number) =>
+    new Date(2021, month, 1).toLocaleDateString(ws === "en" ? "en-US" : "ja-JP", {
+      month: "short",
+    });
   const totals = dayTotals(logs);
   const { columns, monthLabels } = buildCalendar(totals, today, weeks);
 
@@ -30,7 +37,7 @@ export default function ActivityHeatmap({
     <div className="panel p-6">
       <div className="flex items-center gap-2 mb-4">
         <CalendarDays className="w-5 h-5 text-orange-500" />
-        <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">継続の記録</h3>
+        <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">{dict.heatmap.title}</h3>
       </div>
 
       <div className="overflow-x-auto">
@@ -39,11 +46,11 @@ export default function ActivityHeatmap({
           <div className="relative h-4 mb-1" style={{ width: columns.length * CELL }}>
             {monthLabels.map((m) => (
               <span
-                key={`${m.col}-${m.label}`}
+                key={`${m.col}-${m.month}`}
                 className="absolute text-[10px] text-slate-400"
                 style={{ left: m.col * CELL }}
               >
-                {m.label}
+                {monthName(m.month)}
               </span>
             ))}
           </div>
@@ -57,7 +64,7 @@ export default function ActivityHeatmap({
                     <div
                       key={ri}
                       className={`w-3 h-3 rounded-sm ${LEVELS[cell.intensity]}`}
-                      title={`${cell.date}: ${cell.count} アクティビティ`}
+                      title={`${cell.date}: ${cell.count}`}
                     />
                   ) : (
                     <div key={ri} className="w-3 h-3" />
@@ -70,11 +77,11 @@ export default function ActivityHeatmap({
       </div>
 
       <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-slate-400">
-        <span>少</span>
+        <span>{dict.heatmap.less}</span>
         {LEVELS.map((c, i) => (
           <span key={i} className={`w-3 h-3 rounded-sm ${c}`} />
         ))}
-        <span>多</span>
+        <span>{dict.heatmap.more}</span>
       </div>
     </div>
   );

@@ -1,5 +1,9 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+import { fmt } from "@/i18n";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import {
@@ -24,12 +28,13 @@ import type { Recording } from "@/features/recordings/domain/Recording";
 type View = "list" | "setup" | "practice";
 
 export default function ShadowingStudio() {
+  const dict = useDict();
   const [view, setView] = useState<View>("list");
   const [targets, setTargets] = useState<ShadowingTarget[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadTargets = useCallback(async () => {
-    const res = await fetch("/api/shadowing");
+    const res = await apiFetch("/shadowing");
     if (res.ok) setTargets(await res.json());
   }, []);
 
@@ -58,7 +63,7 @@ export default function ShadowingStudio() {
 
   async function confirmDelete() {
     if (!deleteId) return;
-    await fetch(`/api/shadowing/${deleteId}`, { method: "DELETE" });
+    await apiFetch(`/shadowing/${deleteId}`, { method: "DELETE" });
     setDeleteId(null);
     loadTargets();
   }
@@ -100,9 +105,9 @@ export default function ShadowingStudio() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="このクリップを削除しますか？"
-        message="区間の設定と、ひも付く練習録画もすべて削除されます。"
-        confirmLabel="削除する"
+        title={dict.shadowing.deleteClipTitle}
+        message={dict.shadowing.deleteClipMsg}
+        confirmLabel={dict.common.deleteAction}
         danger
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}
@@ -124,19 +129,18 @@ function TargetList({
   onOpen: (t: ShadowingTarget) => void;
   onDelete: (id: string) => void;
 }) {
+  const dict = useDict();
   return (
     <div className="space-y-4">
       <button onClick={onCreate} className="btn-primary">
         <Plus className="w-4 h-4" />
-        新しいクリップ
+        {dict.shadowing.newClip}
       </button>
 
       {targets.length === 0 ? (
         <div className="card p-10 text-center">
           <Scissors className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">
-            まだクリップがありません。お手本動画から区間を切り出しましょう。
-          </p>
+          <p className="text-slate-500 dark:text-slate-400">{dict.shadowing.noClips}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -166,7 +170,7 @@ function TargetList({
               <div className="flex justify-end mt-2">
                 <button
                   onClick={() => onDelete(t.id)}
-                  aria-label="削除"
+                  aria-label={dict.common.deleteAction}
                   className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -201,11 +205,12 @@ function SetupPanel({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const player = useRef<YouTubeHandle>(null);
+  const dict = useDict();
 
   function load() {
     const parsed = parseYouTube(url);
     if (!parsed) {
-      setError("有効な YouTube URL を入力してください。");
+      setError(dict.shadowing.invalidUrl);
       return;
     }
     setError("");
@@ -225,11 +230,11 @@ function SetupPanel({
 
   async function save() {
     if (!videoId || end <= start) {
-      setError("開始より後ろに終了を設定してください。");
+      setError(dict.shadowing.endAfterStart);
       return;
     }
     setSaving(true);
-    const res = await fetch("/api/shadowing", {
+    const res = await apiFetch("/shadowing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -242,16 +247,16 @@ function SetupPanel({
     });
     setSaving(false);
     if (res.ok) onSaved();
-    else setError("保存に失敗しました。");
+    else setError(dict.shadowing.saveFailed);
   }
 
   return (
     <div className="card p-5 space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">クリップを作成</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{dict.shadowing.createTitle}</h3>
         <button onClick={onCancel} className="btn-ghost">
           <X className="w-4 h-4" />
-          キャンセル
+          {dict.shadowing.cancel}
         </button>
       </div>
 
@@ -259,11 +264,11 @@ function SetupPanel({
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="YouTube の URL を貼り付け"
+          placeholder={dict.shadowing.urlPlaceholder}
           className="field flex-1"
         />
         <button onClick={load} className="btn-primary shrink-0">
-          読み込む
+          {dict.shadowing.load}
         </button>
       </div>
 
@@ -286,7 +291,7 @@ function SetupPanel({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
               <Scissors className="w-4 h-4" />
-              練習する区間
+              {dict.shadowing.segment}
               <span className="ml-auto font-mono text-indigo-600 dark:text-indigo-400">
                 {formatClock(start)} – {formatClock(end)}
               </span>
@@ -294,15 +299,15 @@ function SetupPanel({
 
             <div className="flex gap-2">
               <button onClick={setInToCurrent} className="btn-ghost border border-slate-200 dark:border-slate-700 flex-1">
-                現在位置を開始に
+                {dict.shadowing.setIn}
               </button>
               <button onClick={setOutToCurrent} className="btn-ghost border border-slate-200 dark:border-slate-700 flex-1">
-                現在位置を終了に
+                {dict.shadowing.setOut}
               </button>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">開始 {formatClock(start)}</label>
+              <label className="text-xs text-slate-400">{fmt(dict.shadowing.startLabel, { t: formatClock(start) })}</label>
               <input
                 type="range"
                 min={0}
@@ -312,7 +317,7 @@ function SetupPanel({
                 onChange={(e) => setStart(Math.min(Number(e.target.value), end))}
                 className="w-full accent-indigo-600"
               />
-              <label className="text-xs text-slate-400">終了 {formatClock(end)}</label>
+              <label className="text-xs text-slate-400">{fmt(dict.shadowing.endLabel, { t: formatClock(end) })}</label>
               <input
                 type="range"
                 min={0}
@@ -332,20 +337,20 @@ function SetupPanel({
               className="btn-ghost border border-slate-200 dark:border-slate-700"
             >
               <Play className="w-4 h-4" />
-              区間の頭から再生
+              {dict.shadowing.playFromStart}
             </button>
           </div>
 
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="タイトル（例：ビジネス敬語のフレーズ）"
+            placeholder={dict.shadowing.titlePlaceholder}
             className="field"
           />
           <input
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="カテゴリ（任意）"
+            placeholder={dict.shadowing.categoryPlaceholder}
             className="field"
             list="shadowing-cats"
           />
@@ -357,7 +362,7 @@ function SetupPanel({
 
           <button onClick={save} disabled={saving || end <= start} className="btn-primary">
             <Save className="w-4 h-4" />
-            {saving ? "保存中..." : "クリップを保存"}
+            {saving ? dict.shadowing.saving : dict.shadowing.saveClip}
           </button>
         </>
       )}
@@ -374,6 +379,8 @@ function PracticePanel({
   target: ShadowingTarget;
   onBack: () => void;
 }) {
+  const ws = useWs();
+  const dict = useDict();
   const refPlayer = useRef<YouTubeHandle>(null);
   const liveRef = useRef<HTMLVideoElement>(null);
   const selfRef = useRef<HTMLVideoElement>(null);
@@ -389,7 +396,7 @@ function PracticePanel({
   const [error, setError] = useState("");
 
   const loadAttempts = useCallback(async () => {
-    const res = await fetch(`/api/shadowing/${target.id}`);
+    const res = await apiFetch(`/shadowing/${target.id}`);
     if (res.ok) {
       const data = await res.json();
       setAttempts(Array.isArray(data.attempts) ? data.attempts : []);
@@ -416,9 +423,9 @@ function PracticePanel({
       setStream(s);
       setError("");
     } catch {
-      setError("カメラへのアクセスが許可されていません。");
+      setError(dict.shadowing.cameraDenied);
     }
-  }, []);
+  }, [dict]);
 
   function stopCamera() {
     stream?.getTracks().forEach((t) => t.stop());
@@ -457,13 +464,13 @@ function PracticePanel({
     fd.append("shadowingTargetId", target.id);
     fd.append("topic", target.title);
     if (target.category) fd.append("category", target.category);
-    const res = await fetch("/api/recordings", { method: "POST", body: fd });
+    const res = await apiFetch("/recordings", { method: "POST", body: fd });
     if (res.ok) {
       setRecordedBlob(null);
       setStatus("idle");
       await loadAttempts();
     } else {
-      setError("保存に失敗しました。");
+      setError(dict.shadowing.saveFailed);
       setStatus("preview");
     }
   }
@@ -481,7 +488,7 @@ function PracticePanel({
 
   async function confirmDeleteAttempt() {
     if (!deleteAttempt) return;
-    await fetch(`/api/recordings/${deleteAttempt}`, { method: "DELETE" });
+    await apiFetch(`/recordings/${deleteAttempt}`, { method: "DELETE" });
     if (selectedAttempt === deleteAttempt) setSelectedAttempt(null);
     setDeleteAttempt(null);
     await loadAttempts();
@@ -494,7 +501,7 @@ function PracticePanel({
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="btn-ghost">
           <ArrowLeft className="w-4 h-4" />
-          一覧に戻る
+          {dict.shadowing.back}
         </button>
         <div className="text-sm text-slate-500 dark:text-slate-400">
           {formatClock(target.segmentStart)} – {formatClock(target.segmentEnd)}
@@ -513,7 +520,7 @@ function PracticePanel({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="card p-3">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
-            <Play className="w-3.5 h-3.5" /> お手本
+            <Play className="w-3.5 h-3.5" /> {dict.shadowing.model}
           </p>
           <YouTubePlayer
             ref={refPlayer}
@@ -527,7 +534,7 @@ function PracticePanel({
 
         <div className="card p-3">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
-            <Mic className="w-3.5 h-3.5" /> あなた
+            <Mic className="w-3.5 h-3.5" /> {dict.shadowing.you}
           </p>
           <div className="aspect-video w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
             {/* live webcam */}
@@ -545,7 +552,7 @@ function PracticePanel({
               playsInline
               src={
                 status !== "preview" && selectedAttempt
-                  ? `/api/recordings/${selectedAttempt}`
+                  ? `/api/${ws}/recordings/${selectedAttempt}`
                   : undefined
               }
               className={`w-full h-full ${
@@ -553,7 +560,7 @@ function PracticePanel({
               }`}
             />
             {showLive && !stream && !selectedAttempt && (
-              <p className="text-slate-400 text-sm">カメラ未起動</p>
+              <p className="text-slate-400 text-sm">{dict.shadowing.cameraOff}</p>
             )}
           </div>
         </div>
@@ -564,7 +571,7 @@ function PracticePanel({
         {status === "idle" && !stream && (
           <button onClick={startCamera} className="btn-primary">
             <Mic className="w-4 h-4" />
-            カメラを起動
+            {dict.shadowing.startCamera}
           </button>
         )}
         {status === "idle" && stream && (
@@ -573,45 +580,45 @@ function PracticePanel({
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-700 active:scale-[.98]"
           >
             <Circle className="w-4 h-4 fill-current" />
-            録画開始（お手本も再生）
+            {dict.shadowing.startRecording}
           </button>
         )}
         {status === "recording" && (
           <button onClick={stopRecording} className="btn-ghost border border-slate-200 dark:border-slate-700">
             <Square className="w-4 h-4 fill-current" />
-            停止
+            {dict.shadowing.stop}
           </button>
         )}
         {status === "preview" && (
           <>
             <button onClick={saveAttempt} className="btn-primary">
               <Save className="w-4 h-4" />
-              保存
+              {dict.shadowing.save}
             </button>
             <button onClick={playBoth} className="btn-ghost border border-slate-200 dark:border-slate-700">
               <Play className="w-4 h-4" />
-              同時再生
+              {dict.shadowing.playBoth}
             </button>
             <button onClick={discard} className="btn-ghost">
               <X className="w-4 h-4" />
-              破棄
+              {dict.shadowing.discard}
             </button>
           </>
         )}
         {status === "idle" && selectedAttempt && (
           <button onClick={playBoth} className="btn-primary">
             <Play className="w-4 h-4" />
-            同時再生
+            {dict.shadowing.playBoth}
           </button>
         )}
-        {status === "saving" && <p className="text-slate-500 text-sm self-center">保存中...</p>}
+        {status === "saving" && <p className="text-slate-500 text-sm self-center">{dict.shadowing.saving}</p>}
       </div>
 
       {/* Attempt history */}
       <div>
-        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">練習の記録</h3>
+        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.shadowing.history}</h3>
         {attempts.length === 0 ? (
-          <p className="text-sm text-slate-400">まだ練習がありません。</p>
+          <p className="text-sm text-slate-400">{dict.shadowing.noHistory}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {attempts.map((a) => (
@@ -630,7 +637,7 @@ function PracticePanel({
                   }}
                   className="text-slate-700 dark:text-slate-200"
                 >
-                  {new Date(a.created).toLocaleString("ja-JP", {
+                  {new Date(a.created).toLocaleString(ws === "en" ? "en-US" : "ja-JP", {
                     month: "numeric",
                     day: "numeric",
                     hour: "2-digit",
@@ -639,7 +646,7 @@ function PracticePanel({
                 </button>
                 <button
                   onClick={() => setDeleteAttempt(a.id)}
-                  aria-label="削除"
+                  aria-label={dict.common.deleteAction}
                   className="p-1 rounded text-slate-400 hover:text-red-600"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -652,8 +659,8 @@ function PracticePanel({
 
       <ConfirmDialog
         open={deleteAttempt !== null}
-        title="この練習録画を削除しますか？"
-        confirmLabel="削除する"
+        title={dict.shadowing.deleteAttemptTitle}
+        confirmLabel={dict.common.deleteAction}
         danger
         onConfirm={confirmDeleteAttempt}
         onCancel={() => setDeleteAttempt(null)}

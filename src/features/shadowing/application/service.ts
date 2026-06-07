@@ -1,4 +1,4 @@
-import { shadowingTargetRepository } from "@/composition";
+import { getShadowingTargetRepository } from "@/composition";
 import {
   listRecordingsByTarget,
   deleteRecording,
@@ -7,23 +7,23 @@ import type { ShadowingTarget } from "../domain/ShadowingTarget";
 import type { Recording } from "@/features/recordings/domain/Recording";
 
 export function listTargets(): Promise<ShadowingTarget[]> {
-  return shadowingTargetRepository.list();
+  return getShadowingTargetRepository().list();
 }
 
 export function getTarget(id: string): Promise<ShadowingTarget | null> {
-  return shadowingTargetRepository.get(id);
+  return getShadowingTargetRepository().get(id);
 }
 
 export function createTarget(
   data: Omit<ShadowingTarget, "id" | "created">
 ): Promise<ShadowingTarget> {
-  return shadowingTargetRepository.create(data);
+  return getShadowingTargetRepository().create(data);
 }
 
 export async function getTargetWithAttempts(
   id: string
 ): Promise<{ target: ShadowingTarget; attempts: Recording[] } | null> {
-  const target = await shadowingTargetRepository.get(id);
+  const target = await getShadowingTargetRepository().get(id);
   if (!target) return null;
   const attempts = await listRecordingsByTarget(id);
   return { target, attempts };
@@ -33,5 +33,5 @@ export async function getTargetWithAttempts(
 export async function deleteTarget(id: string): Promise<boolean> {
   const attempts = await listRecordingsByTarget(id);
   for (const a of attempts) await deleteRecording(a.id);
-  return shadowingTargetRepository.delete(id);
+  return getShadowingTargetRepository().delete(id);
 }

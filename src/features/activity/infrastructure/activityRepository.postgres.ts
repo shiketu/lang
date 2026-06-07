@@ -1,5 +1,6 @@
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import type { Workspace } from "@/lib/workspace";
 import { activityLog } from "@/lib/db/schema";
 import type {
   ActivityKind,
@@ -8,8 +9,10 @@ import type {
 } from "../domain/Activity";
 
 export class PostgresActivityRepository implements ActivityRepository {
+  constructor(private ws: Workspace = "ja") {}
+
   async log(date: string, kind: ActivityKind, count = 1): Promise<void> {
-    const db = getDb();
+    const db = getDb(this.ws);
     await db
       .insert(activityLog)
       .values({ date, kind, count })
@@ -20,7 +23,7 @@ export class PostgresActivityRepository implements ActivityRepository {
   }
 
   async range(from: string, to: string): Promise<ActivityLog[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(activityLog)
@@ -29,7 +32,7 @@ export class PostgresActivityRepository implements ActivityRepository {
   }
 
   async forDate(date: string): Promise<ActivityLog[]> {
-    const db = getDb();
+    const db = getDb(this.ws);
     const rows = await db
       .select()
       .from(activityLog)

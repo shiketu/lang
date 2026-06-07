@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle } from "lucide-react";
+import { useDict } from "@/i18n/I18nProvider";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -19,12 +20,15 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "確認",
-  cancelLabel = "キャンセル",
+  confirmLabel,
+  cancelLabel,
   danger = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dict = useDict();
+  const confirmText = confirmLabel ?? dict.common.confirm;
+  const cancelText = cancelLabel ?? dict.common.cancel;
   // Close on Escape
   useEffect(() => {
     if (!open) return;
@@ -47,7 +51,7 @@ export default function ConfirmDialog({
         >
           {/* Backdrop */}
           <button
-            aria-label="閉じる"
+            aria-label={dict.common.close}
             className="absolute inset-0 bg-slate-900/50 dark:bg-black/60 backdrop-blur-sm cursor-default"
             onClick={onCancel}
           />
@@ -82,7 +86,7 @@ export default function ConfirmDialog({
 
             <div className="mt-6 flex justify-end gap-2">
               <button className="btn-ghost" onClick={onCancel}>
-                {cancelLabel}
+                {cancelText}
               </button>
               <button
                 className={
@@ -92,7 +96,7 @@ export default function ConfirmDialog({
                 }
                 onClick={onConfirm}
               >
-                {confirmLabel}
+                {confirmText}
               </button>
             </div>
           </motion.div>

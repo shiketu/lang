@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useWs, useDict } from "@/i18n/I18nProvider";
 import TagBadge from "@/components/TagBadge";
 import type { Entry } from "../domain/Entry";
-import {
-  TYPE_LABEL,
-  TYPE_BADGE,
-  PURPOSE_LABEL,
-  PURPOSE_BADGE,
-  REGISTER_LABEL,
-  REGISTER_BADGE,
-} from "./entryMeta";
+import { TYPE_BADGE, PURPOSE_BADGE, REGISTER_BADGE } from "./entryMeta";
 
 function Badge({ label, cls }: { label: string; cls: string }) {
   return (
@@ -21,9 +15,11 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 }
 
 export default function EntryCard({ entry }: { entry: Entry }) {
+  const ws = useWs();
+  const dict = useDict();
   return (
     <Link
-      href={`/lakehouse/${entry.id}`}
+      href={`/${ws}/lakehouse/${entry.id}`}
       className="card card-interactive block p-4 animate-fade-in-up hover:border-indigo-300 dark:hover:border-indigo-700"
     >
       <div className="flex items-start justify-between gap-2">
@@ -37,7 +33,7 @@ export default function EntryCard({ entry }: { entry: Entry }) {
           </p>
         </div>
         <Badge
-          label={TYPE_LABEL[entry.type] ?? entry.type}
+          label={dict.entryMeta.type[entry.type] ?? entry.type}
           cls={TYPE_BADGE[entry.type] ?? ""}
         />
       </div>
@@ -45,10 +41,10 @@ export default function EntryCard({ entry }: { entry: Entry }) {
       {(entry.purpose || entry.register) && (
         <div className="flex flex-wrap gap-1 mt-3">
           {entry.purpose && (
-            <Badge label={PURPOSE_LABEL[entry.purpose]} cls={PURPOSE_BADGE[entry.purpose]} />
+            <Badge label={dict.entryMeta.purpose[entry.purpose]} cls={PURPOSE_BADGE[entry.purpose]} />
           )}
           {entry.register && (
-            <Badge label={REGISTER_LABEL[entry.register]} cls={REGISTER_BADGE[entry.register]} />
+            <Badge label={dict.entryMeta.register[entry.register]} cls={REGISTER_BADGE[entry.register]} />
           )}
         </div>
       )}

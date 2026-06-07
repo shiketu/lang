@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/apiFetch";
+import { useDict } from "@/i18n/I18nProvider";
 import TagBadge from "@/components/TagBadge";
 import type { Entry, EntryType, Purpose, Register } from "../domain/Entry";
 import {
@@ -84,6 +86,10 @@ export default function EntryForm({
   const [tagInput, setTagInput] = useState("");
   const [showMemo, setShowMemo] = useState(!!initialData?.content);
   const [saving, setSaving] = useState(false);
+  const dict = useDict();
+  const typeOptions = TYPE_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.type[o.value] }));
+  const purposeOptions = PURPOSE_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.purpose[o.value] }));
+  const registerOptions = REGISTER_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.register[o.value] }));
 
   function set<K extends keyof EntryFormValues>(key: K, val: EntryFormValues[K]) {
     setV((prev) => ({ ...prev, [key]: val }));
@@ -111,9 +117,9 @@ export default function EntryForm({
       content: v.content,
     };
 
-    const url = isEdit ? `/api/entries/${initialData!.id}` : "/api/entries";
+    const url = isEdit ? `/entries/${initialData!.id}` : "/entries";
     const method = isEdit ? "PUT" : "POST";
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -141,14 +147,14 @@ export default function EntryForm({
           value={v.japanese}
           onChange={(e) => set("japanese", e.target.value)}
           className={input}
-          placeholder="日本語 *（例：食べ放題）"
+          placeholder={dict.entries.jpPlaceholder}
         />
         <input
           type="text"
           value={v.reading}
           onChange={(e) => set("reading", e.target.value)}
           className={input}
-          placeholder="読み（たべほうだい）"
+          placeholder={dict.entries.readingPlaceholder}
         />
       </div>
       <input
@@ -157,21 +163,21 @@ export default function EntryForm({
         value={v.meaning}
         onChange={(e) => set("meaning", e.target.value)}
         className={input}
-        placeholder="意味 *（all-you-can-eat）"
+        placeholder={dict.entries.meaningPlaceholder}
       />
 
       <div className="space-y-2">
         <div>
-          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">種類</span>
-          <ChipGroup options={TYPE_OPTIONS} value={v.type} onChange={(x) => x && set("type", x)} />
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{dict.entries.typeLabel}</span>
+          <ChipGroup options={typeOptions} value={v.type} onChange={(x) => x && set("type", x)} />
         </div>
         <div>
-          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">用途</span>
-          <ChipGroup options={PURPOSE_OPTIONS} value={v.purpose} onChange={(x) => set("purpose", x)} clearable />
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{dict.entries.purposeLabel}</span>
+          <ChipGroup options={purposeOptions} value={v.purpose} onChange={(x) => set("purpose", x)} clearable />
         </div>
         <div>
-          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">使用場面</span>
-          <ChipGroup options={REGISTER_OPTIONS} value={v.register} onChange={(x) => set("register", x)} clearable />
+          <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{dict.entries.registerLabel}</span>
+          <ChipGroup options={registerOptions} value={v.register} onChange={(x) => set("register", x)} clearable />
         </div>
       </div>
 
@@ -188,14 +194,14 @@ export default function EntryForm({
               }
             }}
             className={`${input} flex-1`}
-            placeholder="タグ（場面・トピックなど）→ Enter"
+            placeholder={dict.entries.tagPlaceholder}
           />
           <button
             type="button"
             onClick={addTag}
             className="px-3 py-2 text-sm rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
           >
-            追加
+            {dict.entries.addTag}
           </button>
         </div>
         {v.tags.length > 0 && (
@@ -213,7 +219,7 @@ export default function EntryForm({
           onChange={(e) => set("content", e.target.value)}
           rows={4}
           className={`${input} font-mono`}
-          placeholder="メモ（Markdown）：例文・使い方など"
+          placeholder={dict.entries.memoPlaceholder}
         />
       ) : (
         <button
@@ -221,7 +227,7 @@ export default function EntryForm({
           onClick={() => setShowMemo(true)}
           className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
         >
-          + メモを追加
+          {dict.entries.addMemo}
         </button>
       )}
 
@@ -231,11 +237,11 @@ export default function EntryForm({
           disabled={saving || !v.japanese.trim() || !v.meaning.trim()}
           className="btn-primary"
         >
-          {saving ? "保存中..." : isEdit ? "更新する" : "追加する"}
+          {saving ? dict.entries.saving : isEdit ? dict.entries.update : dict.entries.create}
         </button>
         {onCancel && (
           <button type="button" onClick={onCancel} className="btn-ghost">
-            キャンセル
+            {dict.entries.cancel}
           </button>
         )}
       </div>

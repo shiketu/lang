@@ -1,5 +1,8 @@
 "use client";
 
+import { apiFetch } from "@/lib/apiFetch";
+import { useWs, useDict } from "@/i18n/I18nProvider";
+
 import { useState, useEffect } from "react";
 import { Shuffle, Check, Eye, Sparkles, ArrowRight } from "lucide-react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -8,6 +11,8 @@ import type { Entry } from "@/features/entries/domain/Entry";
 type Phase = "loading" | "prompt" | "input" | "comparing" | "result";
 
 export default function PracticeSession() {
+  const ws = useWs();
+  const dict = useDict();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [current, setCurrent] = useState<Entry | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -18,7 +23,7 @@ export default function PracticeSession() {
   const [tags, setTags] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/tags")
+    apiFetch("/tags")
       .then((r) => r.json())
       .then(setTags);
   }, []);
@@ -27,7 +32,7 @@ export default function PracticeSession() {
     const params = new URLSearchParams();
     if (filterTag) params.set("tag", filterTag);
     if (filterType) params.set("type", filterType);
-    const res = await fetch(`/api/entries?${params}`);
+    const res = await apiFetch(`/entries?${params}`);
     const data: Entry[] = await res.json();
     setEntries(data);
     return data;
@@ -52,7 +57,7 @@ export default function PracticeSession() {
     if (!current || !userInput.trim()) return;
     setPhase("comparing");
 
-    const res = await fetch("/api/practice/compare", {
+    const res = await apiFetch("/practice/compare", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -78,29 +83,29 @@ export default function PracticeSession() {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-sm mb-1 text-slate-600 dark:text-slate-300">
-              種類で絞り込み
+              {dict.practice.filterType}
             </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="field w-auto"
             >
-              <option value="">全て</option>
-              <option value="vocabulary">単語</option>
-              <option value="expression">表現</option>
-              <option value="sentence">例文</option>
+              <option value="">{dict.practice.all}</option>
+              <option value="vocabulary">{dict.entryMeta.type.vocabulary}</option>
+              <option value="expression">{dict.entryMeta.type.expression}</option>
+              <option value="sentence">{dict.entryMeta.type.sentence}</option>
             </select>
           </div>
           <div>
             <label className="block text-sm mb-1 text-slate-600 dark:text-slate-300">
-              タグで絞り込み
+              {dict.practice.filterTag}
             </label>
             <select
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
               className="field w-auto"
             >
-              <option value="">全て</option>
+              <option value="">{dict.practice.all}</option>
               {tags.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
@@ -108,7 +113,7 @@ export default function PracticeSession() {
           </div>
           <button onClick={pickRandom} className="btn-primary">
             <Shuffle className="w-4 h-4" />
-            練習を始める
+            {dict.practice.start}
           </button>
         </div>
       </div>
@@ -117,15 +122,15 @@ export default function PracticeSession() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      {phase === "loading" && <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>}
+      {phase === "loading" && <p className="text-slate-500 dark:text-slate-400">{dict.practice.loading}</p>}
 
       {phase === "prompt" && !current && (
         <div className="text-center py-12">
           <p className="text-slate-500 dark:text-slate-400 mb-4">
-            言語データにエントリーがありません。
+            {dict.practice.noEntries}
           </p>
-          <a href="/lakehouse" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-            まずエントリーを追加しましょう
+          <a href={`/${ws}/lakehouse`} className="text-indigo-600 dark:text-indigo-400 hover:underline">
+            {dict.practice.addFirst}
           </a>
         </div>
       )}
@@ -134,14 +139,14 @@ export default function PracticeSession() {
         <div className="space-y-4">
           <div className="card p-6">
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-              次の意味を日本語で表現してください：
+              {dict.practice.prompt}
             </p>
             <p className="text-xl font-medium text-slate-800 dark:text-slate-100">
               {current.meaning}
             </p>
             {current.reading && (
               <p className="text-sm text-slate-400 mt-2">
-                ヒント：{current.type === "vocabulary" ? "単語" : "表現"}
+                {current.type === "vocabulary" ? dict.practice.hintWord : dict.practice.hintExpr}
               </p>
             )}
           </div>
@@ -150,7 +155,7 @@ export default function PracticeSession() {
             onChange={(e) => setUserInput(e.target.value)}
             rows={3}
             className="field resize-y"
-            placeholder="あなたの日本語表現を入力..."
+            placeholder={dict.practice.inputPlaceholder}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -166,11 +171,11 @@ export default function PracticeSession() {
               className="btn-primary"
             >
               <Check className="w-4 h-4" />
-              確認する
+              {dict.practice.check}
             </button>
             <button onClick={skipToReveal} className="btn-ghost">
               <Eye className="w-4 h-4" />
-              答えを見る
+              {dict.practice.reveal}
             </button>
           </div>
         </div>
@@ -180,11 +185,11 @@ export default function PracticeSession() {
         <div className="space-y-4">
           <div className="card p-6 space-y-3">
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">意味：</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">{dict.practice.meaning}</p>
               <p className="text-lg text-slate-800 dark:text-slate-100">{current.meaning}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">あなたの表現：</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">{dict.practice.yourExpr}</p>
               <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{userInput}</p>
             </div>
           </div>
@@ -194,11 +199,11 @@ export default function PracticeSession() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-[.98]"
             >
               <Sparkles className="w-4 h-4" />
-              LLM分析を依頼する
+              {dict.practice.requestLLM}
             </button>
             <button onClick={skipToReveal} className="btn-ghost">
               <Eye className="w-4 h-4" />
-              分析なしで答えを見る
+              {dict.practice.revealNoAnalysis}
             </button>
           </div>
         </div>
@@ -206,7 +211,7 @@ export default function PracticeSession() {
 
       {phase === "comparing" && (
         <div className="text-center py-8">
-          <p className="text-slate-500 dark:text-slate-400">分析中...</p>
+          <p className="text-slate-500 dark:text-slate-400">{dict.practice.analyzing}</p>
         </div>
       )}
 
@@ -214,7 +219,7 @@ export default function PracticeSession() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-900/20 p-4">
-              <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">元の表現：</p>
+              <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">{dict.practice.original}</p>
               <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{current.japanese}</p>
               {current.reading && (
                 <p className="text-sm text-slate-500 dark:text-slate-400">{current.reading}</p>
@@ -222,7 +227,7 @@ export default function PracticeSession() {
             </div>
             {userInput && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20 p-4">
-                <p className="text-sm text-amber-600 dark:text-amber-400 mb-1">あなたの表現：</p>
+                <p className="text-sm text-amber-600 dark:text-amber-400 mb-1">{dict.practice.yourExpr}</p>
                 <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{userInput}</p>
               </div>
             )}
@@ -236,7 +241,7 @@ export default function PracticeSession() {
 
           <div className="flex gap-3">
             <button onClick={pickRandom} className="btn-primary">
-              次の問題
+              {dict.practice.next}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
