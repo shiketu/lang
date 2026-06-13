@@ -8,6 +8,9 @@ export interface Recording {
   referenceUrl?: string;
   /** When set, this recording is a shadowing practice attempt for that target. */
   shadowingTargetId?: string;
+  /** Sentence sub-segment (seconds within the clip) for repeat practice; unset = whole clip. */
+  segStart?: number;
+  segEnd?: number;
   tags: string[];
   created: string;
   duration?: number;

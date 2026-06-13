@@ -22,6 +22,8 @@ export function saveRecording(
     category?: string;
     tags?: string[];
     shadowingTargetId?: string;
+    segStart?: number;
+    segEnd?: number;
   }
 ): Promise<Recording> {
   return getRecordingRepository().save(file, meta);

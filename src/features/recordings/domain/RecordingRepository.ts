@@ -10,6 +10,8 @@ export interface RecordingRepository {
       category?: string;
       tags?: string[];
       shadowingTargetId?: string;
+      segStart?: number;
+      segEnd?: number;
     }
   ): Promise<Recording>;
   getBlob(

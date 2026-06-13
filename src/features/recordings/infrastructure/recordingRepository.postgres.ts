@@ -18,6 +18,8 @@ function toRecording(row: Row): Recording {
     category: row.category ?? undefined,
     referenceUrl: row.referenceUrl ?? undefined,
     shadowingTargetId: row.shadowingTargetId ?? undefined,
+    segStart: row.segStart ?? undefined,
+    segEnd: row.segEnd ?? undefined,
     tags: row.tags ?? [],
     created: row.created,
     duration: row.duration ?? undefined,
@@ -56,6 +58,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       category?: string;
       tags?: string[];
       shadowingTargetId?: string;
+      segStart?: number;
+      segEnd?: number;
     }
   ): Promise<Recording> {
     const db = getDb(this.ws);
@@ -72,6 +76,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       topic: meta.topic,
       category: meta.category,
       shadowingTargetId: meta.shadowingTargetId,
+      segStart: meta.segStart,
+      segEnd: meta.segEnd,
       tags: meta.tags ?? [],
       created: new Date().toISOString(),
     };
@@ -82,6 +88,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       topic: recording.topic ?? null,
       category: recording.category ?? null,
       shadowingTargetId: recording.shadowingTargetId ?? null,
+      segStart: recording.segStart ?? null,
+      segEnd: recording.segEnd ?? null,
       tags: recording.tags,
       created: recording.created,
       duration: recording.duration ?? null,

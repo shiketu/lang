@@ -25,6 +25,10 @@ export const POST = withWorkspaceRoute(async (request: NextRequest) => {
   const category = formData.get("category") as string | null;
   const tagsRaw = formData.get("tags") as string | null;
   const shadowingTargetId = formData.get("shadowingTargetId") as string | null;
+  const segStartRaw = formData.get("segStart") as string | null;
+  const segEndRaw = formData.get("segEnd") as string | null;
+  const segStart = segStartRaw !== null ? Number(segStartRaw) : NaN;
+  const segEnd = segEndRaw !== null ? Number(segEndRaw) : NaN;
 
   if (!file) {
     return Response.json({ error: "No file provided" }, { status: 400 });
@@ -35,6 +39,8 @@ export const POST = withWorkspaceRoute(async (request: NextRequest) => {
     category: category?.trim() ? category.trim() : undefined,
     tags: tagsRaw ? JSON.parse(tagsRaw) : [],
     shadowingTargetId: shadowingTargetId ?? undefined,
+    segStart: Number.isFinite(segStart) ? segStart : undefined,
+    segEnd: Number.isFinite(segEnd) ? segEnd : undefined,
   });
 
   const today = todayInTokyo();

@@ -34,6 +34,8 @@ CREATE TABLE "recordings" (
 	"category" text,
 	"reference_url" text,
 	"shadowing_target_id" text,
+	"seg_start" real,
+	"seg_end" real,
 	"tags" text[] DEFAULT '{}' NOT NULL,
 	"created" text NOT NULL,
 	"duration" integer

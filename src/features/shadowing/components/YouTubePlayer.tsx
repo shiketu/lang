@@ -15,6 +15,7 @@ export interface YouTubeHandle {
   pause: () => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  setPlaybackRate: (rate: number) => void;
 }
 
 interface Props {
@@ -65,6 +66,7 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
     pause: () => playerRef.current?.pauseVideo?.(),
     getCurrentTime: () => playerRef.current?.getCurrentTime?.() ?? 0,
     getDuration: () => playerRef.current?.getDuration?.() ?? 0,
+    setPlaybackRate: (rate) => playerRef.current?.setPlaybackRate?.(rate),
   }));
 
   useEffect(() => {

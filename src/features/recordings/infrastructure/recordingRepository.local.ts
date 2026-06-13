@@ -16,6 +16,8 @@ export class LocalRecordingRepository implements RecordingRepository {
       category?: string;
       tags?: string[];
       shadowingTargetId?: string;
+      segStart?: number;
+      segEnd?: number;
     }
   ): Promise<Recording> {
     const id = crypto.randomUUID();
@@ -31,6 +33,8 @@ export class LocalRecordingRepository implements RecordingRepository {
       topic: meta.topic,
       category: meta.category,
       shadowingTargetId: meta.shadowingTargetId,
+      segStart: meta.segStart,
+      segEnd: meta.segEnd,
       tags: meta.tags ?? [],
       created: new Date().toISOString(),
     };

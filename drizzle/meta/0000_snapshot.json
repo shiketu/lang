@@ -1,5 +1,5 @@
 {
-  "id": "5e9a8532-b9e4-476d-909a-3ae06068bb82",
+  "id": "fdfd96b7-4596-47ca-a53d-6a8b2d043da3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -207,6 +207,18 @@
         "shadowing_target_id": {
           "name": "shadowing_target_id",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seg_start": {
+          "name": "seg_start",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seg_end": {
+          "name": "seg_end",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },

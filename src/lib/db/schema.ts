@@ -62,6 +62,9 @@ export const recordings = pgTable("recordings", {
   category: text("category"),
   referenceUrl: text("reference_url"),
   shadowingTargetId: text("shadowing_target_id"),
+  // Sentence sub-segment within the clip for repeat practice (null = whole-clip attempt).
+  segStart: real("seg_start"),
+  segEnd: real("seg_end"),
   tags: text("tags").array().notNull().default([]),
   created: text("created").notNull(),
   duration: integer("duration"),
