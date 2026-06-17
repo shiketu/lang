@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql
+      # Runs once on a fresh volume: creates the en-workspace database.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -24,7 +26,8 @@ services:
       args:
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     env_file: .env
-    command: ["npm", "run", "db:migrate"]
+    # Migrate both workspace databases (ja = DATABASE_URL, en = DATABASE_URL_EN).
+    command: ["sh", "-c", "npm run db:migrate && npm run db:migrate:en"]
     restart: "no"
     depends_on:
       postgres:
