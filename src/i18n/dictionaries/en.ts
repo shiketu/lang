@@ -12,6 +12,7 @@ export const en: typeof ja = {
     irreversible: "This action cannot be undone.",
     loading: "Loading...",
     close: "Close",
+    menu: "Menu",
   },
   nav: {
     menuTitle: "Learning menu",

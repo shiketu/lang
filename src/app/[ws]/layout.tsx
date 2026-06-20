@@ -6,6 +6,7 @@ import PageTransition from "@/components/PageTransition";
 import { hasLocale } from "@/lib/workspace";
 import { getDictionary } from "@/i18n";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { SidebarProvider } from "@/components/SidebarProvider";
 
 export function generateStaticParams() {
   return [{ ws: "ja" }, { ws: "en" }];
@@ -27,17 +28,19 @@ export default async function WorkspaceLayout({
 
   return (
     <I18nProvider ws={ws} dict={dict}>
-      <Show when="signed-in">
-        <Nav />
-      </Show>
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <SidebarProvider>
         <Show when="signed-in">
-          <Header />
+          <Nav />
         </Show>
-        <div className="flex-1 overflow-auto p-4 md:p-8">
-          <PageTransition>{children}</PageTransition>
-        </div>
-      </main>
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <Show when="signed-in">
+            <Header />
+          </Show>
+          <div className="flex-1 overflow-auto p-4 md:p-8">
+            <PageTransition>{children}</PageTransition>
+          </div>
+        </main>
+      </SidebarProvider>
     </I18nProvider>
   );
 }

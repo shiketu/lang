@@ -11,6 +11,7 @@ export const ja = {
     irreversible: "この操作は取り消せません。",
     loading: "読み込み中...",
     close: "閉じる",
+    menu: "メニュー",
   },
   nav: {
     menuTitle: "学習メニュー",
