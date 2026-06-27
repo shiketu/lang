@@ -47,6 +47,10 @@ Thumbs.db
 # ----- Vercel / Deploy -----
 .vercel
 
+# ----- PWA icon source (large/copyrighted; generated icons are committed) -----
+/public/icons/source.*
+/public/icons/_*.png
+
 # ----- User data (personal learning content — NOT code) -----
 # Keep directory structure via .gitkeep, ignore actual data files.
 /content/**/*
