@@ -1,22 +1,30 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/apiFetch";
 import { useDict } from "@/i18n/I18nProvider";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import TargetList from "./TargetList";
+import VideoList from "./VideoList";
+import SegmentList from "./SegmentList";
 import SetupPanel from "./SetupPanel";
 import ClipWorkspace from "./ClipWorkspace";
+import { groupByVideo } from "../groupByVideo";
 import type { ShadowingTarget } from "../domain/ShadowingTarget";
 
-type View = "list" | "setup" | "clip";
+type View = "videos" | "segments" | "setup" | "clip";
 
 export default function ShadowingStudio() {
   const dict = useDict();
-  const [view, setView] = useState<View>("list");
   const [targets, setTargets] = useState<ShadowingTarget[]>([]);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [view, setView] = useState<View>("videos");
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [activeTarget, setActiveTarget] = useState<ShadowingTarget | null>(null);
+  const [setupLocked, setSetupLocked] = useState<{
+    videoId: string;
+    referenceUrl: string;
+  } | null>(null);
+  const [deleteSegmentId, setDeleteSegmentId] = useState<string | null>(null);
+  const [deleteVideoId, setDeleteVideoId] = useState<string | null>(null);
 
   const loadTargets = useCallback(async () => {
     const res = await apiFetch("/shadowing");
@@ -27,7 +35,25 @@ export default function ShadowingStudio() {
     loadTargets();
   }, [loadTargets]);
 
-  // Deep link ?target=<id> opens that target's clip view.
+  const videos = useMemo(() => groupByVideo(targets), [targets]);
+  const activeVideo = useMemo(
+    () => videos.find((v) => v.videoId === activeVideoId) ?? null,
+    [videos, activeVideoId]
+  );
+  const existingCategories = useMemo(
+    () => [...new Set(targets.map((t) => t.category).filter(Boolean) as string[])],
+    [targets]
+  );
+
+  // If the open video disappears (e.g. all its segments deleted), fall back.
+  useEffect(() => {
+    if (view === "segments" && activeVideoId && !activeVideo) {
+      setActiveVideoId(null);
+      setView("videos");
+    }
+  }, [view, activeVideoId, activeVideo]);
+
+  // Deep link ?target=<id> opens that segment's clip (back → its video).
   const [pendingTarget, setPendingTarget] = useState<string | null>(null);
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("target");
@@ -38,40 +64,81 @@ export default function ShadowingStudio() {
       const t = targets.find((x) => x.id === pendingTarget);
       if (t) {
         setActiveTarget(t);
+        setActiveVideoId(t.videoId);
         setView("clip");
       }
       setPendingTarget(null);
     }
   }, [pendingTarget, targets]);
 
-  async function confirmDelete() {
-    if (!deleteId) return;
-    await apiFetch(`/shadowing/${deleteId}`, { method: "DELETE" });
-    setDeleteId(null);
-    loadTargets();
+  async function confirmDeleteSegment() {
+    if (!deleteSegmentId) return;
+    await apiFetch(`/shadowing/${deleteSegmentId}`, { method: "DELETE" });
+    setDeleteSegmentId(null);
+    await loadTargets();
+  }
+
+  async function confirmDeleteVideo() {
+    if (!deleteVideoId) return;
+    const group = videos.find((v) => v.videoId === deleteVideoId);
+    if (group) {
+      for (const s of group.segments) {
+        await apiFetch(`/shadowing/${s.id}`, { method: "DELETE" });
+      }
+    }
+    setDeleteVideoId(null);
+    await loadTargets();
   }
 
   return (
     <div>
-      {view === "list" && (
-        <TargetList
-          targets={targets}
-          onCreate={() => setView("setup")}
-          onOpen={(t) => {
+      {view === "videos" && (
+        <VideoList
+          videos={videos}
+          onCreate={() => {
+            setSetupLocked(null);
+            setView("setup");
+          }}
+          onOpenVideo={(id) => {
+            setActiveVideoId(id);
+            setView("segments");
+          }}
+          onDeleteVideo={(id) => setDeleteVideoId(id)}
+        />
+      )}
+
+      {view === "segments" && activeVideo && (
+        <SegmentList
+          video={activeVideo}
+          onBack={() => {
+            setActiveVideoId(null);
+            setView("videos");
+          }}
+          onOpenSegment={(t) => {
             setActiveTarget(t);
             setView("clip");
           }}
-          onDelete={(id) => setDeleteId(id)}
+          onAddSegment={() => {
+            setSetupLocked({
+              videoId: activeVideo.videoId,
+              referenceUrl: activeVideo.referenceUrl,
+            });
+            setView("setup");
+          }}
+          onDeleteSegment={(id) => setDeleteSegmentId(id)}
         />
       )}
 
       {view === "setup" && (
         <SetupPanel
-          existingCategories={[...new Set(targets.map((t) => t.category).filter(Boolean) as string[])]}
-          onCancel={() => setView("list")}
-          onSaved={async () => {
+          existingCategories={existingCategories}
+          lockedVideo={setupLocked ?? undefined}
+          onCancel={() => setView(setupLocked ? "segments" : "videos")}
+          onSaved={async (created) => {
+            setSetupLocked(null);
             await loadTargets();
-            setView("list");
+            setActiveVideoId(created.videoId);
+            setView("segments");
           }}
         />
       )}
@@ -81,19 +148,28 @@ export default function ShadowingStudio() {
           target={activeTarget}
           onBack={() => {
             setActiveTarget(null);
-            setView("list");
+            setView(activeVideoId ? "segments" : "videos");
           }}
         />
       )}
 
       <ConfirmDialog
-        open={deleteId !== null}
+        open={deleteSegmentId !== null}
         title={dict.shadowing.deleteClipTitle}
         message={dict.shadowing.deleteClipMsg}
         confirmLabel={dict.common.deleteAction}
         danger
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteId(null)}
+        onConfirm={confirmDeleteSegment}
+        onCancel={() => setDeleteSegmentId(null)}
+      />
+      <ConfirmDialog
+        open={deleteVideoId !== null}
+        title={dict.shadowing.deleteVideoTitle}
+        message={dict.shadowing.deleteVideoMsg}
+        confirmLabel={dict.common.deleteAction}
+        danger
+        onConfirm={confirmDeleteVideo}
+        onCancel={() => setDeleteVideoId(null)}
       />
     </div>
   );

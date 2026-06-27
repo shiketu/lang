@@ -7,18 +7,23 @@ import { useDict } from "@/i18n/I18nProvider";
 import { fmt } from "@/i18n";
 import YouTubePlayer, { type YouTubeHandle } from "./YouTubePlayer";
 import { parseYouTube, formatClock } from "@/lib/youtube";
+import type { ShadowingTarget } from "../domain/ShadowingTarget";
 
 export default function SetupPanel({
   existingCategories,
+  lockedVideo,
   onCancel,
   onSaved,
 }: {
   existingCategories: string[];
+  // When set, the video is fixed (adding another segment to it): the URL input
+  // is hidden and the player loads this video directly.
+  lockedVideo?: { videoId: string; referenceUrl: string };
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (created: ShadowingTarget) => void;
 }) {
-  const [url, setUrl] = useState("");
-  const [videoId, setVideoId] = useState<string | null>(null);
+  const [url, setUrl] = useState(lockedVideo?.referenceUrl ?? "");
+  const [videoId, setVideoId] = useState<string | null>(lockedVideo?.videoId ?? null);
   const [duration, setDuration] = useState(0);
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
@@ -68,31 +73,33 @@ export default function SetupPanel({
       }),
     });
     setSaving(false);
-    if (res.ok) onSaved();
+    if (res.ok) onSaved(await res.json());
     else setError(dict.shadowing.saveFailed);
   }
 
   return (
     <div className="card p-5 space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{dict.shadowing.createTitle}</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{lockedVideo ? dict.shadowing.addSegment : dict.shadowing.createTitle}</h3>
         <button onClick={onCancel} className="btn-ghost">
           <X className="w-4 h-4" />
           {dict.shadowing.cancel}
         </button>
       </div>
 
-      <div className="flex gap-2">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={dict.shadowing.urlPlaceholder}
-          className="field flex-1"
-        />
-        <button onClick={load} className="btn-primary shrink-0">
-          {dict.shadowing.load}
-        </button>
-      </div>
+      {!lockedVideo && (
+        <div className="flex gap-2">
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={dict.shadowing.urlPlaceholder}
+            className="field flex-1"
+          />
+          <button onClick={load} className="btn-primary shrink-0">
+            {dict.shadowing.load}
+          </button>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
