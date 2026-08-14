@@ -1,19 +1,19 @@
-import { getNoteRepository, llm } from "@/composition";
+import { llm } from "@/composition";
 import { getWorkspace } from "@/lib/workspace";
 import { getDictionary, fmt } from "@/i18n";
-import type { EntryType } from "@/features/entries/domain/Entry";
+import type { EntryType } from "../domain/Entry";
 import type { ExtractedEntry } from "../domain/ExtractedEntry";
 
 const VALID_TYPES: EntryType[] = ["vocabulary", "expression", "sentence"];
 
-export async function extractEntriesFromNote(
-  date: string
+/** Runs the LLM extraction prompt over pasted/uploaded notes. */
+export async function extractEntriesFromText(
+  content: string
 ): Promise<ExtractedEntry[]> {
-  const note = await getNoteRepository().get(date);
-  if (!note || !note.content.trim()) return [];
+  if (!content.trim()) return [];
 
   const dict = getDictionary(getWorkspace());
-  const prompt = fmt(dict.prompts.extract, { content: note.content });
+  const prompt = fmt(dict.prompts.extract, { content });
 
   const raw = await llm.generateText(prompt, 2048);
   return parseCandidates(raw);

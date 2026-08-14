@@ -3,7 +3,6 @@
 export type ActivityKind =
   | "review" // graded a review item
   | "capture" // added/imported an expression into the library
-  | "note" // saved a daily note
   | "output" // recorded a self-talk video
   | "practice" // did a free practice round
   | "shadowing"; // recorded a shadowing video (Phase C)

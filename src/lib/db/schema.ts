@@ -3,10 +3,8 @@ import {
   text,
   integer,
   real,
-  jsonb,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import type { TaskSchedule, TaskStatus } from "@/features/todos/domain/Task";
 import type {
   EntryType,
   Purpose,
@@ -28,32 +26,6 @@ export const entries = pgTable("entries", {
   created: text("created").notNull(),
   updated: text("updated").notNull(),
 });
-
-export const notes = pgTable("notes", {
-  date: text("date").primaryKey(),
-  content: text("content").notNull().default(""),
-  tags: text("tags").array().notNull().default([]),
-  created: text("created").notNull(),
-  updated: text("updated").notNull(),
-});
-
-export const tasks = pgTable("tasks", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  schedule: jsonb("schedule").$type<TaskSchedule>().notNull(),
-  created: text("created").notNull(),
-});
-
-export const taskCompletions = pgTable(
-  "task_completions",
-  {
-    date: text("date").notNull(),
-    taskId: text("task_id").notNull(),
-    status: text("status").$type<TaskStatus>().notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.date, t.taskId] })]
-);
 
 export const recordings = pgTable("recordings", {
   id: text("id").primaryKey(),

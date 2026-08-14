@@ -12,14 +12,12 @@ import {
   SkipForward,
   Flag,
   PartyPopper,
-  NotebookPen,
   Trash2,
   RotateCcw,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { useWs, useDict } from "@/i18n/I18nProvider";
 import { fmt } from "@/i18n";
-import { todayInTokyo } from "@/lib/today";
 import { formatClock } from "@/lib/youtube";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import YouTubePlayer, { type YouTubeHandle } from "./YouTubePlayer";
@@ -66,10 +64,6 @@ export default function RepeatPanel({ target }: { target: ShadowingTarget }) {
   const [attempts, setAttempts] = useState<Recording[]>([]);
   const [selectedAttempt, setSelectedAttempt] = useState<string | null>(null);
   const [deleteAttempt, setDeleteAttempt] = useState<string | null>(null);
-
-  const [memo, setMemo] = useState("");
-  const [memoSaving, setMemoSaving] = useState(false);
-  const [memoSaved, setMemoSaved] = useState(false);
 
   const loadAttempts = useCallback(async () => {
     const res = await apiFetch(`/shadowing/${target.id}`);
@@ -224,37 +218,6 @@ export default function RepeatPanel({ target }: { target: ShadowingTarget }) {
     }
   }
 
-  /* ------------------------------- memo ------------------------------- */
-
-  async function appendMemo() {
-    const text = memo.trim();
-    if (!text) return;
-    setMemoSaving(true);
-    const today = todayInTokyo();
-    let content = "";
-    let tags: string[] = [];
-    const res = await apiFetch(`/notes/${today}`);
-    if (res.ok) {
-      const note = await res.json();
-      content = note.content ?? "";
-      tags = note.tags ?? [];
-    }
-    const block = `## ${fmt(dict.shadowing.memoHeading, { title: target.title })}\n\n${text}`;
-    const next = content.trim() ? `${content.trimEnd()}\n\n${block}` : block;
-    const put = await apiFetch(`/notes/${today}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: next, tags }),
-    });
-    setMemoSaving(false);
-    if (put.ok) {
-      setMemo("");
-      setMemoSaved(true);
-    } else {
-      setError(dict.shadowing.saveFailed);
-    }
-  }
-
   /* ------------------------------ review ------------------------------ */
 
   function reviewAttempt(a: Recording) {
@@ -306,11 +269,6 @@ export default function RepeatPanel({ target }: { target: ShadowingTarget }) {
           <p className="text-slate-500 dark:text-slate-400">
             {fmt(dict.shadowing.doneCount, { n: sessionList.length })}
           </p>
-          {memo.trim() && !memoSaved && (
-            <p className="text-sm text-amber-600 dark:text-amber-400">
-              {dict.shadowing.memoReminder}
-            </p>
-          )}
           <button onClick={restart} className="btn-primary inline-flex">
             <RotateCcw className="w-4 h-4" />
             {dict.shadowing.again}
@@ -499,39 +457,6 @@ export default function RepeatPanel({ target }: { target: ShadowingTarget }) {
           )}
         </>
       )}
-
-      {/* Practice memo (always visible) */}
-      <div className="card p-4 space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <NotebookPen className="w-4 h-4 text-indigo-500" />
-          {dict.shadowing.memoTitle}
-        </div>
-        <textarea
-          value={memo}
-          onChange={(e) => {
-            setMemo(e.target.value);
-            setMemoSaved(false);
-          }}
-          rows={3}
-          className="field resize-y"
-          placeholder={dict.shadowing.memoPlaceholder}
-        />
-        <div className="flex items-center gap-3">
-          <button
-            onClick={appendMemo}
-            disabled={memoSaving || !memo.trim()}
-            className="btn-primary"
-          >
-            <NotebookPen className="w-4 h-4" />
-            {memoSaving ? dict.shadowing.saving : dict.shadowing.memoAppend}
-          </button>
-          {memoSaved && (
-            <span className="text-sm text-emerald-600 dark:text-emerald-400">
-              {dict.shadowing.memoAppended}
-            </span>
-          )}
-        </div>
-      </div>
 
       {/* Sentence attempt history */}
       <div>

@@ -34,18 +34,6 @@ export type LLMConfig =
   | { provider: "anthropic"; model: string; apiKey?: string }
   | { provider: "openai"; model: string; apiKey?: string };
 
-// --- Note storage ---
-
-export type NoteStorageConfig =
-  | { provider: "markdown"; dir: string }
-  | { provider: "postgres" };
-
-// --- Task storage ---
-
-export type TaskStorageConfig =
-  | { provider: "json-file"; filePath: string }
-  | { provider: "postgres" };
-
 // --- Review schedule storage ---
 
 export type ReviewStorageConfig =
@@ -68,8 +56,6 @@ export type ShadowingStorageConfig =
 
 export interface AppConfig {
   entries: EntryStorageConfig;
-  notes: NoteStorageConfig;
-  tasks: TaskStorageConfig;
   review: ReviewStorageConfig;
   activity: ActivityStorageConfig;
   shadowing: ShadowingStorageConfig;
@@ -103,14 +89,6 @@ export function resolveConfig(ws: Workspace): AppConfig {
         },
         fallbackDir: contentDir,
       };
-
-  const notes: NoteStorageConfig = usePostgres
-    ? { provider: "postgres" }
-    : { provider: "markdown", dir: path.join(contentDir, "notes") };
-
-  const tasks: TaskStorageConfig = usePostgres
-    ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(contentDir, "todos.json") };
 
   const review: ReviewStorageConfig = usePostgres
     ? { provider: "postgres" }
@@ -161,5 +139,5 @@ export function resolveConfig(ws: Workspace): AppConfig {
           apiKey: process.env.ANTHROPIC_API_KEY,
         };
 
-  return { entries, notes, tasks, review, activity, shadowing, blob, recordingMeta, llm };
+  return { entries, review, activity, shadowing, blob, recordingMeta, llm };
 }

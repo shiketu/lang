@@ -1,9 +1,5 @@
 import { MarkdownEntryRepository } from "@/features/entries/infrastructure/entryRepository.markdown";
 import { PostgresEntryRepository } from "@/features/entries/infrastructure/entryRepository.postgres";
-import { MarkdownNoteRepository } from "@/features/notes/infrastructure/noteRepository.markdown";
-import { PostgresNoteRepository } from "@/features/notes/infrastructure/noteRepository.postgres";
-import { JsonTaskRepository } from "@/features/todos/infrastructure/taskRepository.json";
-import { PostgresTaskRepository } from "@/features/todos/infrastructure/taskRepository.postgres";
 import { JsonReviewRepository } from "@/features/review/infrastructure/reviewRepository.json";
 import { PostgresReviewRepository } from "@/features/review/infrastructure/reviewRepository.postgres";
 import { JsonActivityRepository } from "@/features/activity/infrastructure/activityRepository.json";
@@ -18,8 +14,6 @@ import { PostgresRecordingRepository } from "@/features/recordings/infrastructur
 import { AnthropicProvider } from "@/lib/llm/anthropic";
 import type { Workspace } from "@/lib/workspace";
 import type { EntryRepository } from "@/features/entries/domain/EntryRepository";
-import type { NoteRepository } from "@/features/notes/domain/NoteRepository";
-import type { TaskRepository } from "@/features/todos/domain/TaskRepository";
 import type { ReviewRepository } from "@/features/review/domain/ReviewRepository";
 import type { ActivityRepository } from "@/features/activity/domain/Activity";
 import type { ShadowingTargetRepository } from "@/features/shadowing/domain/ShadowingTarget";
@@ -29,8 +23,6 @@ import type { LLMProvider } from "@/lib/llm/interfaces";
 import type { Recording } from "@/features/recordings/domain/Recording";
 import type {
   EntryStorageConfig,
-  NoteStorageConfig,
-  TaskStorageConfig,
   ReviewStorageConfig,
   ActivityStorageConfig,
   ShadowingStorageConfig,
@@ -49,24 +41,6 @@ export function createEntryRepository(config: EntryStorageConfig, ws: Workspace)
       });
     case "postgres":
       return new PostgresEntryRepository(ws);
-  }
-}
-
-export function createNoteRepository(config: NoteStorageConfig, ws: Workspace): NoteRepository {
-  switch (config.provider) {
-    case "markdown":
-      return new MarkdownNoteRepository(config.dir);
-    case "postgres":
-      return new PostgresNoteRepository(ws);
-  }
-}
-
-export function createTaskRepository(config: TaskStorageConfig, ws: Workspace): TaskRepository {
-  switch (config.provider) {
-    case "json-file":
-      return new JsonTaskRepository(config.filePath);
-    case "postgres":
-      return new PostgresTaskRepository(ws);
   }
 }
 

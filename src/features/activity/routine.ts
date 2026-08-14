@@ -40,9 +40,10 @@ export const ROUTINE_STEPS: RoutineStep[] = [
   {
     id: "notes",
     icon: PenTool,
-    href: "/notes",
+    // Capturing what you learned now happens by importing notes into the library.
+    href: "/lakehouse/import",
     accent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
     btn: "bg-emerald-600 hover:bg-emerald-700",
-    doneKinds: ["note", "capture"],
+    doneKinds: ["capture"],
   },
 ];

@@ -5,6 +5,9 @@ import { useDict } from "@/i18n/I18nProvider";
 import { fmt } from "@/i18n";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { useWs } from "@/i18n/I18nProvider";
 import EntryCard from "@/features/entries/components/EntryCard";
 import EntryForm from "@/features/entries/components/EntryForm";
 import {
@@ -59,6 +62,7 @@ export default function LakehousePage() {
   const [tagFilter, setTagFilter] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const dict = useDict();
+  const ws = useWs();
   const typeOptions = TYPE_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.type[o.value] }));
   const purposeOptions = PURPOSE_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.purpose[o.value] }));
   const registerOptions = REGISTER_OPTIONS.map((o) => ({ ...o, label: dict.entryMeta.register[o.value] }));
@@ -107,9 +111,18 @@ export default function LakehousePage() {
     <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{dict.entries.pageTitle}</h1>
-        <button onClick={() => setShowAdd((s) => !s)} className="btn-primary">
-          {showAdd ? dict.entries.close : dict.entries.add}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${ws}/lakehouse/import`}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-700 active:scale-[.98]"
+          >
+            <Sparkles className="w-4 h-4" />
+            {dict.imports.openImport}
+          </Link>
+          <button onClick={() => setShowAdd((s) => !s)} className="btn-primary">
+            {showAdd ? dict.entries.close : dict.entries.add}
+          </button>
+        </div>
       </div>
 
       {/* Inline quick add */}

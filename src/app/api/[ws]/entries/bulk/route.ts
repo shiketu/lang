@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createEntry } from "@/features/entries/application/service";
-import type { ExtractedEntry } from "@/features/notes/domain/ExtractedEntry";
+import type { ExtractedEntry } from "@/features/entries/domain/ExtractedEntry";
 import { enqueueReview } from "@/features/review/application/service";
 import { logActivity } from "@/features/activity/application/service";
 import { todayInTokyo, addDays } from "@/lib/today";

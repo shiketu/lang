@@ -1,8 +1,6 @@
 import { resolveConfig } from "./config";
 import {
   createEntryRepository,
-  createNoteRepository,
-  createTaskRepository,
   createReviewRepository,
   createActivityRepository,
   createShadowingTargetRepository,
@@ -15,8 +13,6 @@ function buildRepos(ws: Workspace) {
   const config = resolveConfig(ws);
   return {
     entry: createEntryRepository(config.entries, ws),
-    note: createNoteRepository(config.notes, ws),
-    task: createTaskRepository(config.tasks, ws),
     review: createReviewRepository(config.review, ws),
     activity: createActivityRepository(config.activity, ws),
     shadowing: createShadowingTargetRepository(config.shadowing, ws),
@@ -34,8 +30,6 @@ export const llm = createLLM(resolveConfig("ja").llm);
 // Workspace-aware accessors. `getWorkspace()` reads the request-scoped ALS
 // value (seeded from the URL); defaults to "ja" outside a request.
 export const getEntryRepository = () => byWs[getWorkspace()].entry;
-export const getNoteRepository = () => byWs[getWorkspace()].note;
-export const getTaskRepository = () => byWs[getWorkspace()].task;
 export const getReviewRepository = () => byWs[getWorkspace()].review;
 export const getActivityRepository = () => byWs[getWorkspace()].activity;
 export const getShadowingTargetRepository = () => byWs[getWorkspace()].shadowing;
