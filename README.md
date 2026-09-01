@@ -1,36 +1,213 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# lang-learn
 
-## Getting Started
+語学学習のための個人用プラットフォーム。
+「表現をためる → シャドーイングする → 自分の言葉で話す → 忘れる前に復習する」という
+毎日のループを一つのアプリにまとめたもの。
 
-First, run the development server:
+日本語版（NihongoPro）と英語版（EnglishPro）が同じコードベースで動き、
+データベースも保存先も UI もそれぞれ完全に独立している。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## できること
+
+### ホーム — 今日のルーティン
+その日にやることを 4 ステップで表示する。各ステップは実際の行動ログから
+自動でチェックが付き、継続日数とヒートマップで積み重ねが見える。
+
+| ステップ | 内容 |
+| --- | --- |
+| 今日の復習 | 忘却曲線に沿って出題される項目をこなす |
+| シャドーイング | お手本動画の区間を繰り返し練習して録画する |
+| 独り言アウトプット | テーマに沿って話し、録画して振り返る |
+| 気づきを取り込む | 書きためたノートを貼り付けて、AI に表現を抽出させる |
+
+### 言語データ
+単語・表現・文をためていく場所。用途（覚えるだけ／そのまま使える／型として使う／頻出）と
+レジスター（ビジネス〜日常）、タグで分類・検索できる。
+
+### ノートから取り込む
+自分で書いた学習ノートを貼り付ける、または `.txt` / `.md` を読み込ませると、
+Claude が学習価値のある表現を抽出して候補として並べる。
+種別や読み・意味をその場で直してから、選んだものだけを登録できる。
+登録された表現は自動的に復習キューに入る。
+
+### シャドーイング
+YouTube の URL と区間を指定して「クリップ」を作る。同じ動画から複数の区間を切り出せて、
+一覧は動画ごとにまとまって表示される。
+
+クリップを開くと 2 つのタブがある。
+
+- **シャドーイング** — 区間をループ再生しながら通しで録画し、お手本と並べて見比べる
+- **リピート練習** — 再生中に「ここで区切る」で文単位に切り、その一文だけをループ精聴
+  （0.5× / 0.75× / 1× の速度切り替え、区間の ±0.5 秒微調整）してから録画・比較する
+
+録画は一文ずつ保存され、あとから区間ごとに聴き返せる。
+
+### 表現練習
+言語データから意味だけを見て、自分の言葉で表現してみる。
+入力を元の表現と比較して、文法の違い・自然さ・ニュアンスを Claude が解説する。
+
+### 今日の復習
+SM-2（間隔反復）で出題される。対象は 4 種類。
+
+- ためた表現の想起
+- 表現の産出（練習モード）
+- 過去の録画の見直し
+- シャドーイングクリップの再練習
+
+「もう一度 / 難しい / 普通 / 簡単」で評価すると、次回の出題日が自動で決まる。
+
+---
+
+## 技術スタック
+
+| 領域 | 使っているもの |
+| --- | --- |
+| フレームワーク | Next.js 16（App Router）/ TypeScript |
+| スタイル | Tailwind CSS v4 |
+| 認証 | Clerk |
+| データベース | PostgreSQL + Drizzle ORM |
+| 動画の保存先 | S3（ローカル開発ではディスク） |
+| LLM | Anthropic Claude |
+| その他 | YouTube IFrame API, MediaRecorder API, PWA 対応 |
+
+---
+
+## アーキテクチャ
+
+機能ごとに縦割り（DDD 風）で、依存の向きは常に内側へ。
+
+```
+src/
+├─ app/            ルーティング層（ページ + API）。HTTP を知っている唯一の場所
+├─ features/       機能ごとの縦切り
+│  └─ <feature>/
+│     ├─ domain/          型とリポジトリの interface（フレームワーク非依存）
+│     ├─ application/     ユースケース
+│     ├─ infrastructure/  interface の実装（Postgres 版とファイル版の 2 つ）
+│     └─ components/      その機能の React コンポーネント
+├─ composition/    どの実装を使うかを決める唯一の場所（DI ルート）
+├─ lib/            DB 接続・ストレージ・LLM・SM-2 などの共通基盤
+├─ components/     機能をまたぐ UI
+└─ i18n/           ja / en の辞書（LLM のプロンプトもここ）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### ワークスペース（ja / en）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+URL の先頭セグメントが唯一の情報源で、Cookie は使わない。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- ページ … `/ja/...` `/en/...`
+- API … `/api/ja/...` `/api/en/...`
 
-## Learn More
+API ルートを `withWorkspaceRoute()` で包むと、`[ws]` セグメントの値が
+AsyncLocalStorage に入る。データ層は `getWorkspace()` を呼ぶだけでよく、
+リポジトリに引数を引き回す必要がない。ワークスペースごとに
+データベース・S3 のプレフィックス・辞書・プロンプトが分かれる。
 
-To learn more about Next.js, take a look at the following resources:
+### ストレージの自動フォールバック
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`DATABASE_URL` を設定しなければ Postgres の代わりにローカルファイル
+（Markdown / JSON）を使い、`S3_BUCKET` がなければ動画もローカルディスクに保存する。
+そのためオフラインでもそのまま動く。切り替えの判定は `composition/config.ts` の 1 か所だけ。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## セットアップ
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 必要なもの
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Node.js 22 以降
+- Clerk のアカウント（無料枠で十分）
+- Anthropic の API キー
+- PostgreSQL と S3 は任意（なくてもファイル保存で動く）
+
+### ローカル開発
+
+```bash
+git clone git@github.com:shiketu/lang.git
+cd lang
+npm install
+cp .env.example .env    # Clerk と Anthropic のキーだけ埋めれば動く
+npm run dev
+```
+
+http://localhost:3000 を開くと、ブラウザの言語設定に応じて `/ja` か `/en` に振り分けられる。
+
+### 環境変数
+
+`.env.example` にすべて説明付きで書いてある。最低限必要なのは以下の 3 つ。
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+CLERK_SECRET_KEY=sk_test_xxxxx
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+```
+
+Postgres と S3 を使う場合は `DATABASE_URL` / `DATABASE_URL_EN` / `S3_BUCKET` などを追加する。
+AWS の認証情報は EC2 の IAM インスタンスロールから取るのが前提なので、
+本番では `AWS_ACCESS_KEY_ID` などを書かなくてよい。
+
+---
+
+## デプロイ
+
+Docker Compose で Postgres・マイグレーション・アプリ・Cloudflare Tunnel をまとめて起動する。
+
+```bash
+docker compose up -d --build
+```
+
+`migrate` サービスが ja / en 両方のデータベースにマイグレーションを流してから
+アプリが起動する。en 用のデータベースは初回起動時に `initdb/` のスクリプトが作成する。
+
+### 注意：マイグレーションの方針
+
+このプロジェクトはマイグレーションを**単一のベースライン**で管理している。
+スキーマを変えたときは `drizzle/` の中身を消してから再生成する運用なので、
+**既存のデータボリュームがあるとマイグレーションが失敗する**。
+
+```bash
+docker compose down -v          # ボリュームごと削除（データは消える）
+docker compose up -d --build
+```
+
+データを残したい場合は、ベースラインを作り直さずに差分マイグレーション
+（`0001_*.sql` を追加する形）に切り替える必要がある。
+
+---
+
+## スクリプト
+
+```bash
+npm run dev              # 開発サーバー
+npm run build            # 本番ビルド（型チェックと lint も走る）
+npm run db:generate      # スキーマからマイグレーションを生成
+npm run db:migrate       # ja のデータベースに適用
+npm run db:migrate:en    # en のデータベースに適用
+npm run db:studio        # Drizzle Studio でデータを見る
+npm run gen:icons        # SVG から PWA 用アイコンを生成
+
+./scripts/backup-to-s3.sh   # 両方のデータベースを S3 にバックアップ
+```
+
+---
+
+## PWA
+
+Android の Chrome から「ホーム画面に追加」でインストールできる。
+インストール後はアドレスバーなしの全画面で起動し、カメラを使った録画もそのまま動く。
+
+Service Worker は意図的に最小限にしてある。`/api/*` は**常にネットワークのみ**で
+キャッシュせず（認証付きのデータのため）、静的アセットだけをキャッシュする。
+
+> インストール済みの PWA は manifest の変更を自動では読み込まない。
+> アイコンや設定を変えたときは、一度アンインストールしてから入れ直す。
+
+---
+
+## 補足
+
+個人用として作っているため、**ユーザーごとのデータ分離は実装していない**。
+同じインスタンスにサインインした人は同じデータを見ることになるので、
+自分以外が使う可能性がある場合は Clerk 側でサインアップを制限しておくこと。
