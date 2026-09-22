@@ -1,4 +1,4 @@
-import { BrainCircuit, Mic, Video, PenTool, type LucideIcon } from "lucide-react";
+import { BrainCircuit, Film, PenTool, type LucideIcon } from "lucide-react";
 import type { ActivityKind } from "./domain/Activity";
 
 // Structural config only — titles/descriptions/times/themes live in the i18n
@@ -22,25 +22,17 @@ export const ROUTINE_STEPS: RoutineStep[] = [
     doneKinds: ["review"],
   },
   {
-    id: "shadowing",
-    icon: Mic,
-    href: "/shadowing",
+    // Shadowing, repeat practice and retelling all happen inside a video now.
+    id: "study",
+    icon: Film,
+    href: "/study",
     accent: "bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400",
     btn: "bg-violet-600 hover:bg-violet-700",
-    doneKinds: ["shadowing"],
+    doneKinds: ["shadowing", "output"],
   },
   {
-    id: "selftalk",
-    icon: Video,
-    href: "/video",
-    accent: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400",
-    btn: "bg-rose-600 hover:bg-rose-700",
-    doneKinds: ["output"],
-  },
-  {
-    id: "notes",
+    id: "capture",
     icon: PenTool,
-    // Capturing what you learned now happens by importing notes into the library.
     href: "/lakehouse/import",
     accent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
     btn: "bg-emerald-600 hover:bg-emerald-700",

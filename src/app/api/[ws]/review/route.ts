@@ -5,7 +5,8 @@ import {
 } from "@/features/review/application/service";
 import { getEntry } from "@/features/entries/application/service";
 import { getRecording } from "@/features/recordings/application/service";
-import { getTarget } from "@/features/shadowing/application/service";
+import { getClip } from "@/features/study/application/clipService";
+import { getVideo } from "@/features/study/application/videoService";
 import { logActivity } from "@/features/activity/application/service";
 import { todayInTokyo } from "@/lib/today";
 import type { ReviewKind } from "@/features/review/domain/Reviewable";
@@ -28,8 +29,12 @@ export const GET = withWorkspaceRoute(async () => {
         return recording ? { ...r, recording } : null;
       }
       if (r.kind === "shadowing") {
-        const target = await getTarget(r.refId);
-        return target ? { ...r, target } : null;
+        // A clip only knows its video row; the player needs the YouTube id.
+        const clip = await getClip(r.refId);
+        if (!clip) return null;
+        const video = await getVideo(clip.videoRef);
+        if (!video) return null;
+        return { ...r, target: { ...clip, videoId: video.videoId } };
       }
       const entry = await getEntry(r.refId);
       return entry ? { ...r, entry } : null;

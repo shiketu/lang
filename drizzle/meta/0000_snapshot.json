@@ -1,5 +1,5 @@
 {
-  "id": "b160fdc1-f98b-477e-ae35-ff8fd253ab5a",
+  "id": "5ff8356e-9c76-412a-8138-d2379bf0c925",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -39,6 +39,55 @@
           ]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.clips": {
+      "name": "clips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "video_ref": {
+          "name": "video_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_start": {
+          "name": "segment_start",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_end": {
+          "name": "segment_end",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created": {
+          "name": "created",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -159,8 +208,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shadowing_target_id": {
-          "name": "shadowing_target_id",
+        "video_ref": {
+          "name": "video_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clip_id": {
+          "name": "clip_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -277,20 +332,14 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.shadowing_targets": {
-      "name": "shadowing_targets",
+    "public.videos": {
+      "name": "videos",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
-        },
-        "reference_url": {
-          "name": "reference_url",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "video_id": {
@@ -305,21 +354,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "segment_start": {
-          "name": "segment_start",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "segment_end": {
-          "name": "segment_end",
-          "type": "real",
+        "reference_url": {
+          "name": "reference_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "category": {
           "name": "category",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

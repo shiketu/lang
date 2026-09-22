@@ -3,6 +3,7 @@ import {
   text,
   integer,
   real,
+  jsonb,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import type {
@@ -10,6 +11,7 @@ import type {
   Purpose,
   Register,
 } from "@/features/entries/domain/Entry";
+import type { TranscriptLine } from "@/features/study/domain/Video";
 import type { ReviewKind } from "@/features/review/domain/Reviewable";
 import type { ActivityKind } from "@/features/activity/domain/Activity";
 
@@ -33,7 +35,10 @@ export const recordings = pgTable("recordings", {
   topic: text("topic"),
   category: text("category"),
   referenceUrl: text("reference_url"),
-  shadowingTargetId: text("shadowing_target_id"),
+  // Every recording belongs to a video; clipId is set only for clip-scoped
+  // practice, and seg_* only for per-sentence repeat attempts.
+  videoRef: text("video_ref"),
+  clipId: text("clip_id"),
   // Sentence sub-segment within the clip for repeat practice (null = whole-clip attempt).
   segStart: real("seg_start"),
   segEnd: real("seg_end"),
@@ -42,14 +47,26 @@ export const recordings = pgTable("recordings", {
   duration: integer("duration"),
 });
 
-export const shadowingTargets = pgTable("shadowing_targets", {
+// A study video: the unit you navigate into. Clips, captions and recordings
+// all hang off one of these.
+export const videos = pgTable("videos", {
   id: text("id").primaryKey(),
+  videoId: text("video_id").notNull(), // YouTube id
+  title: text("title").notNull(),
   referenceUrl: text("reference_url").notNull(),
-  videoId: text("video_id").notNull(),
+  category: text("category"),
+  // Pasted + parsed captions: [{ t: seconds, text }]; null until provided.
+  transcript: jsonb("transcript").$type<TranscriptLine[]>(),
+  created: text("created").notNull(),
+});
+
+// A practice segment inside one video.
+export const clips = pgTable("clips", {
+  id: text("id").primaryKey(),
+  videoRef: text("video_ref").notNull(),
   title: text("title").notNull(),
   segmentStart: real("segment_start").notNull(),
   segmentEnd: real("segment_end").notNull(),
-  category: text("category"),
   created: text("created").notNull(),
 });
 

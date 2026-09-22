@@ -11,14 +11,17 @@ export function categoryFolder(category?: string): string {
 }
 
 /**
- * Storage folder for a recording's blob key. Shadowing practice attempts are
- * grouped under `shadowing/<targetId>/` (all attempts of one clip together);
- * everything else uses its category folder.
+ * Storage folder for a recording's blob key:
+ *   clip practice  → `clips/<clipId>/`   (all attempts of one clip together)
+ *   retell         → `retell/<videoRef>/` (free recap of a whole video)
+ *   anything else  → its category folder
  */
 export function recordingFolder(meta: {
   category?: string;
-  shadowingTargetId?: string;
+  videoRef?: string;
+  clipId?: string;
 }): string {
-  if (meta.shadowingTargetId) return `shadowing/${meta.shadowingTargetId}`;
+  if (meta.clipId) return `clips/${meta.clipId}`;
+  if (meta.videoRef) return `retell/${meta.videoRef}`;
   return categoryFolder(meta.category);
 }

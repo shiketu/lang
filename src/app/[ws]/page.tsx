@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Play, CheckCircle2, Flame } from "lucide-react";
-import ActivityHeatmap from "@/components/ActivityHeatmap";
+import StudyStats from "@/components/StudyStats";
 import { ROUTINE_STEPS, type RoutineStep } from "@/features/activity/routine";
 import { dayTotals, currentStreak } from "@/lib/streak";
 import { todayInTokyo } from "@/lib/today";
@@ -18,17 +18,14 @@ function stepMetric(
   step: RoutineStep,
   dueCount: number,
   done: boolean,
-  dict: Dictionary,
-  theme: string
+  dict: Dictionary
 ): string {
   switch (step.id) {
     case "review":
       return dueCount > 0 ? fmt(dict.home.reviewCount, { n: dueCount }) : dict.home.reviewNone;
-    case "shadowing":
+    case "study":
       return dict.home.shadowingMetric;
-    case "selftalk":
-      return fmt(dict.home.theme, { t: theme });
-    case "notes":
+    case "capture":
       return done ? dict.home.recorded : dict.home.unrecorded;
     default:
       return "";
@@ -59,9 +56,6 @@ export default function HomePage() {
     string,
     { title: string; desc: string; time: string }
   >;
-  const themes = dict.routine.themes;
-  const theme = themes[(Number(today.replace(/-/g, "")) || 0) % themes.length];
-
   const totals = dayTotals(logs);
   const streak = currentStreak(new Set(totals.keys()), today);
 
@@ -167,7 +161,7 @@ export default function HomePage() {
 
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full truncate">
-                        {stepMetric(step, dueCount, done, dict, theme)}
+                        {stepMetric(step, dueCount, done, dict)}
                       </span>
 
                       {done ? (
@@ -199,7 +193,7 @@ export default function HomePage() {
 
         {/* Right: consistency */}
         <div className="space-y-6">
-          <ActivityHeatmap logs={logs} today={today} />
+          <StudyStats />
         </div>
       </div>
     </div>

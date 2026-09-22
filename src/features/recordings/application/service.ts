@@ -5,10 +5,22 @@ export function listRecordings(): Promise<Recording[]> {
   return getRecordingRepository().list();
 }
 
-/** Practice attempts belonging to a shadowing target, newest first. */
-export async function listRecordingsByTarget(targetId: string): Promise<Recording[]> {
+/** Practice attempts belonging to one clip, newest first. */
+export async function listRecordingsByClip(clipId: string): Promise<Recording[]> {
   const all = await getRecordingRepository().list();
-  return all.filter((r) => r.shadowingTargetId === targetId);
+  return all.filter((r) => r.clipId === clipId);
+}
+
+/** Every recording under a video — clip attempts and retells alike. */
+export async function listRecordingsByVideo(videoRef: string): Promise<Recording[]> {
+  const all = await getRecordingRepository().list();
+  return all.filter((r) => r.videoRef === videoRef);
+}
+
+/** Retell recordings for a video: attached to the video but not to any clip. */
+export async function listRetellsByVideo(videoRef: string): Promise<Recording[]> {
+  const all = await getRecordingRepository().list();
+  return all.filter((r) => r.videoRef === videoRef && !r.clipId);
 }
 
 export function getRecording(id: string): Promise<Recording | null> {
@@ -21,7 +33,8 @@ export function saveRecording(
     topic?: string;
     category?: string;
     tags?: string[];
-    shadowingTargetId?: string;
+    videoRef?: string;
+    clipId?: string;
     segStart?: number;
     segEnd?: number;
   }

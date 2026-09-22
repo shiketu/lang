@@ -9,7 +9,8 @@ export interface RecordingRepository {
       topic?: string;
       category?: string;
       tags?: string[];
-      shadowingTargetId?: string;
+      videoRef?: string;
+      clipId?: string;
       segStart?: number;
       segEnd?: number;
     }

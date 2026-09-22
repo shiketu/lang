@@ -17,7 +17,8 @@ function toRecording(row: Row): Recording {
     topic: row.topic ?? undefined,
     category: row.category ?? undefined,
     referenceUrl: row.referenceUrl ?? undefined,
-    shadowingTargetId: row.shadowingTargetId ?? undefined,
+    videoRef: row.videoRef ?? undefined,
+    clipId: row.clipId ?? undefined,
     segStart: row.segStart ?? undefined,
     segEnd: row.segEnd ?? undefined,
     tags: row.tags ?? [],
@@ -57,7 +58,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       topic?: string;
       category?: string;
       tags?: string[];
-      shadowingTargetId?: string;
+      videoRef?: string;
+      clipId?: string;
       segStart?: number;
       segEnd?: number;
     }
@@ -75,7 +77,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       filename: key,
       topic: meta.topic,
       category: meta.category,
-      shadowingTargetId: meta.shadowingTargetId,
+      videoRef: meta.videoRef,
+      clipId: meta.clipId,
       segStart: meta.segStart,
       segEnd: meta.segEnd,
       tags: meta.tags ?? [],
@@ -87,7 +90,8 @@ export class PostgresRecordingRepository implements RecordingRepository {
       filename: recording.filename,
       topic: recording.topic ?? null,
       category: recording.category ?? null,
-      shadowingTargetId: recording.shadowingTargetId ?? null,
+      videoRef: recording.videoRef ?? null,
+      clipId: recording.clipId ?? null,
       segStart: recording.segStart ?? null,
       segEnd: recording.segEnd ?? null,
       tags: recording.tags,

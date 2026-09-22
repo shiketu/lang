@@ -1,18 +1,42 @@
 import { NextRequest } from "next/server";
-import { listRecordings, saveRecording } from "@/features/recordings/application/service";
+import {
+  listRecordings,
+  listRecordingsByClip,
+  listRecordingsByVideo,
+  listRetellsByVideo,
+  saveRecording,
+} from "@/features/recordings/application/service";
 import { enqueueReview } from "@/features/review/application/service";
 import { logActivity } from "@/features/activity/application/service";
 import { todayInTokyo, addDays } from "@/lib/today";
 import { requireAuth } from "@/lib/auth";
 import { withWorkspaceRoute } from "@/lib/workspace";
 
-export const GET = withWorkspaceRoute(async () => {
+/**
+ * GET /recordings
+ *   ?clipId=…             attempts for one clip
+ *   ?videoRef=…           everything under one video
+ *   ?videoRef=…&retell=1  only the video's retells (not tied to a clip)
+ *   (no params)           everything
+ */
+export const GET = withWorkspaceRoute(async (request: NextRequest) => {
   const unauthorized = await requireAuth();
   if (unauthorized) return unauthorized;
 
-  // Self-talk list only — shadowing attempts live under their target.
-  const recordings = await listRecordings();
-  return Response.json(recordings.filter((r) => !r.shadowingTargetId));
+  const { searchParams } = request.nextUrl;
+  const clipId = searchParams.get("clipId");
+  const videoRef = searchParams.get("videoRef");
+  const retellOnly = searchParams.get("retell") === "1";
+
+  if (clipId) return Response.json(await listRecordingsByClip(clipId));
+  if (videoRef) {
+    return Response.json(
+      retellOnly
+        ? await listRetellsByVideo(videoRef)
+        : await listRecordingsByVideo(videoRef)
+    );
+  }
+  return Response.json(await listRecordings());
 });
 
 export const POST = withWorkspaceRoute(async (request: NextRequest) => {
@@ -24,7 +48,8 @@ export const POST = withWorkspaceRoute(async (request: NextRequest) => {
   const topic = formData.get("topic") as string | null;
   const category = formData.get("category") as string | null;
   const tagsRaw = formData.get("tags") as string | null;
-  const shadowingTargetId = formData.get("shadowingTargetId") as string | null;
+  const videoRef = formData.get("videoRef") as string | null;
+  const clipId = formData.get("clipId") as string | null;
   const segStartRaw = formData.get("segStart") as string | null;
   const segEndRaw = formData.get("segEnd") as string | null;
   const segStart = segStartRaw !== null ? Number(segStartRaw) : NaN;
@@ -38,19 +63,20 @@ export const POST = withWorkspaceRoute(async (request: NextRequest) => {
     topic: topic ?? undefined,
     category: category?.trim() ? category.trim() : undefined,
     tags: tagsRaw ? JSON.parse(tagsRaw) : [],
-    shadowingTargetId: shadowingTargetId ?? undefined,
+    videoRef: videoRef ?? undefined,
+    clipId: clipId ?? undefined,
     segStart: Number.isFinite(segStart) ? segStart : undefined,
     segEnd: Number.isFinite(segEnd) ? segEnd : undefined,
   });
 
   const today = todayInTokyo();
   try {
-    if (shadowingTargetId) {
-      // A shadowing attempt schedules its target for review and logs a shadowing.
-      await enqueueReview("shadowing", shadowingTargetId, addDays(today, 3));
+    if (clipId) {
+      // A clip attempt schedules that clip for review and logs shadowing.
+      await enqueueReview("shadowing", clipId, addDays(today, 3));
       await logActivity(today, "shadowing");
     } else {
-      // A self-output video resurfaces for review; logs a daily output.
+      // A retell is self-produced output: it resurfaces as a video review.
       await enqueueReview("video", meta.id, addDays(today, 3));
       await logActivity(today, "output");
     }

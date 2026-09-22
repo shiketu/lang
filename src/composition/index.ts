@@ -3,7 +3,8 @@ import {
   createEntryRepository,
   createReviewRepository,
   createActivityRepository,
-  createShadowingTargetRepository,
+  createVideoRepository,
+  createClipRepository,
   createRecordingRepository,
   createLLM,
 } from "./factory";
@@ -15,7 +16,8 @@ function buildRepos(ws: Workspace) {
     entry: createEntryRepository(config.entries, ws),
     review: createReviewRepository(config.review, ws),
     activity: createActivityRepository(config.activity, ws),
-    shadowing: createShadowingTargetRepository(config.shadowing, ws),
+    video: createVideoRepository(config.videos, ws),
+    clip: createClipRepository(config.clips, ws),
     recording: createRecordingRepository(config, ws),
   };
 }
@@ -32,5 +34,6 @@ export const llm = createLLM(resolveConfig("ja").llm);
 export const getEntryRepository = () => byWs[getWorkspace()].entry;
 export const getReviewRepository = () => byWs[getWorkspace()].review;
 export const getActivityRepository = () => byWs[getWorkspace()].activity;
-export const getShadowingTargetRepository = () => byWs[getWorkspace()].shadowing;
+export const getVideoRepository = () => byWs[getWorkspace()].video;
+export const getClipRepository = () => byWs[getWorkspace()].clip;
 export const getRecordingRepository = () => byWs[getWorkspace()].recording;

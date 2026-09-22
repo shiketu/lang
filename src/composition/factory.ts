@@ -4,8 +4,10 @@ import { JsonReviewRepository } from "@/features/review/infrastructure/reviewRep
 import { PostgresReviewRepository } from "@/features/review/infrastructure/reviewRepository.postgres";
 import { JsonActivityRepository } from "@/features/activity/infrastructure/activityRepository.json";
 import { PostgresActivityRepository } from "@/features/activity/infrastructure/activityRepository.postgres";
-import { JsonShadowingTargetRepository } from "@/features/shadowing/infrastructure/shadowingTargetRepository.json";
-import { PostgresShadowingTargetRepository } from "@/features/shadowing/infrastructure/shadowingTargetRepository.postgres";
+import { JsonVideoRepository } from "@/features/study/infrastructure/videoRepository.json";
+import { PostgresVideoRepository } from "@/features/study/infrastructure/videoRepository.postgres";
+import { JsonClipRepository } from "@/features/study/infrastructure/clipRepository.json";
+import { PostgresClipRepository } from "@/features/study/infrastructure/clipRepository.postgres";
 import { LocalBlobStorage } from "@/lib/storage/localBlobStorage";
 import { S3BlobStorage } from "@/lib/storage/s3BlobStorage";
 import { JsonMetadataStore } from "@/lib/storage/jsonMetadataStore";
@@ -16,7 +18,8 @@ import type { Workspace } from "@/lib/workspace";
 import type { EntryRepository } from "@/features/entries/domain/EntryRepository";
 import type { ReviewRepository } from "@/features/review/domain/ReviewRepository";
 import type { ActivityRepository } from "@/features/activity/domain/Activity";
-import type { ShadowingTargetRepository } from "@/features/shadowing/domain/ShadowingTarget";
+import type { VideoRepository } from "@/features/study/domain/Video";
+import type { ClipRepository } from "@/features/study/domain/Clip";
 import type { RecordingRepository } from "@/features/recordings/domain/RecordingRepository";
 import type { BlobStorageProvider } from "@/lib/storage/interfaces";
 import type { LLMProvider } from "@/lib/llm/interfaces";
@@ -25,7 +28,8 @@ import type {
   EntryStorageConfig,
   ReviewStorageConfig,
   ActivityStorageConfig,
-  ShadowingStorageConfig,
+  VideoStorageConfig,
+  ClipStorageConfig,
   BlobStorageConfig,
   MetadataStoreConfig,
   LLMConfig,
@@ -65,15 +69,27 @@ export function createActivityRepository(
   }
 }
 
-export function createShadowingTargetRepository(
-  config: ShadowingStorageConfig,
+export function createVideoRepository(
+  config: VideoStorageConfig,
   ws: Workspace
-): ShadowingTargetRepository {
+): VideoRepository {
   switch (config.provider) {
     case "json-file":
-      return new JsonShadowingTargetRepository(config.filePath);
+      return new JsonVideoRepository(config.filePath);
     case "postgres":
-      return new PostgresShadowingTargetRepository(ws);
+      return new PostgresVideoRepository(ws);
+  }
+}
+
+export function createClipRepository(
+  config: ClipStorageConfig,
+  ws: Workspace
+): ClipRepository {
+  switch (config.provider) {
+    case "json-file":
+      return new JsonClipRepository(config.filePath);
+    case "postgres":
+      return new PostgresClipRepository(ws);
   }
 }
 

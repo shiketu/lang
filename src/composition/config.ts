@@ -46,9 +46,15 @@ export type ActivityStorageConfig =
   | { provider: "json-file"; filePath: string }
   | { provider: "postgres" };
 
-// --- Shadowing target storage ---
+// --- Study video storage ---
 
-export type ShadowingStorageConfig =
+export type VideoStorageConfig =
+  | { provider: "json-file"; filePath: string }
+  | { provider: "postgres" };
+
+// --- Clip storage ---
+
+export type ClipStorageConfig =
   | { provider: "json-file"; filePath: string }
   | { provider: "postgres" };
 
@@ -58,7 +64,8 @@ export interface AppConfig {
   entries: EntryStorageConfig;
   review: ReviewStorageConfig;
   activity: ActivityStorageConfig;
-  shadowing: ShadowingStorageConfig;
+  videos: VideoStorageConfig;
+  clips: ClipStorageConfig;
   blob: BlobStorageConfig;
   recordingMeta: MetadataStoreConfig;
   llm: LLMConfig;
@@ -98,9 +105,13 @@ export function resolveConfig(ws: Workspace): AppConfig {
     ? { provider: "postgres" }
     : { provider: "json-file", filePath: path.join(contentDir, "activity.json") };
 
-  const shadowing: ShadowingStorageConfig = usePostgres
+  const videos: VideoStorageConfig = usePostgres
     ? { provider: "postgres" }
-    : { provider: "json-file", filePath: path.join(contentDir, "shadowing.json") };
+    : { provider: "json-file", filePath: path.join(contentDir, "videos.json") };
+
+  const clips: ClipStorageConfig = usePostgres
+    ? { provider: "postgres" }
+    : { provider: "json-file", filePath: path.join(contentDir, "clips.json") };
 
   // Video files live in blob storage: S3 in production, local disk for offline dev.
   // Each workspace gets its own key prefix / directory.
@@ -139,5 +150,5 @@ export function resolveConfig(ws: Workspace): AppConfig {
           apiKey: process.env.ANTHROPIC_API_KEY,
         };
 
-  return { entries, review, activity, shadowing, blob, recordingMeta, llm };
+  return { entries, review, activity, videos, clips, blob, recordingMeta, llm };
 }

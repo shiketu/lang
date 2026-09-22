@@ -15,7 +15,8 @@ export class LocalRecordingRepository implements RecordingRepository {
       topic?: string;
       category?: string;
       tags?: string[];
-      shadowingTargetId?: string;
+      videoRef?: string;
+      clipId?: string;
       segStart?: number;
       segEnd?: number;
     }
@@ -32,7 +33,8 @@ export class LocalRecordingRepository implements RecordingRepository {
       filename: key,
       topic: meta.topic,
       category: meta.category,
-      shadowingTargetId: meta.shadowingTargetId,
+      videoRef: meta.videoRef,
+      clipId: meta.clipId,
       segStart: meta.segStart,
       segEnd: meta.segEnd,
       tags: meta.tags ?? [],

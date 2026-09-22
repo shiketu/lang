@@ -6,12 +6,9 @@ import { motion } from "motion/react";
 import {
   LayoutDashboard,
   Database,
-  BookOpen,
   Edit3,
-  Video,
-  ListTodo,
+  Film,
   BrainCircuit,
-  Mic,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -22,12 +19,9 @@ import { useSidebar } from "@/components/SidebarProvider";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Database,
-  BookOpen,
   Edit3,
-  Video,
-  ListTodo,
+  Film,
   BrainCircuit,
-  Mic,
 };
 
 export default function Nav() {

@@ -16,17 +16,20 @@ import {
   PartyPopper,
 } from "lucide-react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-import YouTubePlayer from "@/features/shadowing/components/YouTubePlayer";
+import YouTubePlayer from "@/features/study/components/YouTubePlayer";
 import { SM2_GRADES } from "@/lib/sm2";
 import type { Reviewable, ReviewKind } from "../domain/Reviewable";
 import type { Entry } from "@/features/entries/domain/Entry";
 import type { Recording } from "@/features/recordings/domain/Recording";
-import type { ShadowingTarget } from "@/features/shadowing/domain/ShadowingTarget";
+import type { Clip } from "@/features/study/domain/Clip";
+
+/** A clip joined with its video's YouTube id, as the review API returns it. */
+type ClipTarget = Clip & { videoId: string };
 
 type ReviewItem = Reviewable & {
   entry?: Entry;
   recording?: Recording;
-  target?: ShadowingTarget;
+  target?: ClipTarget;
 };
 
 const KIND_META: Record<ReviewKind, { icon: typeof BrainCircuit; color: string }> = {
@@ -299,7 +302,7 @@ export default function ReviewSession() {
                 className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800"
               />
               <Link
-                href={`/${ws}/shadowing?target=${current.target.id}`}
+                href={`/${ws}/study/${current.target.videoRef}?clip=${current.target.id}`}
                 className="btn-ghost inline-flex border border-slate-200 dark:border-slate-700"
               >
                 <Mic className="w-4 h-4" />
