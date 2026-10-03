@@ -81,15 +81,23 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
     const container = containerRef.current;
     // YT replaces the element it's given with an <iframe>, which conflicts with
     // React's DOM ownership — so mount it on a throwaway child div instead.
-    const host = document.createElement("div");
-    host.style.width = "100%";
-    host.style.height = "100%";
-    container?.appendChild(host);
+    const mount = document.createElement("div");
+    mount.style.width = "100%";
+    mount.style.height = "100%";
+    container?.appendChild(mount);
 
     loadYT().then((YT) => {
       if (cancelled) return;
-      playerRef.current = new YT.Player(host, {
+      playerRef.current = new YT.Player(mount, {
         videoId,
+        // Embed from the privacy-enhanced domain. Besides not setting tracking
+        // cookies, this keeps the JS API working when a browser extension
+        // rewrites youtube.com embeds to youtube-nocookie.com: the API talks to
+        // the iframe over postMessage and checks its origin, so a rewritten
+        // iframe silently breaks onReady / getDuration / getCurrentTime while
+        // the video itself still plays. Embedding nocookie up front leaves the
+        // extension nothing to rewrite.
+        host: "https://www.youtube-nocookie.com",
         width: "100%",
         height: "100%",
         playerVars: {
@@ -97,6 +105,8 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
           modestbranding: 1,
           rel: 0,
           playsinline: 1,
+          // Lets the player validate the postMessage channel against our page.
+          origin: window.location.origin,
         },
         events: {
           onReady: () => {
