@@ -11,6 +11,34 @@ import type { YouTubeHandle } from "./YouTubePlayer";
 import type { Clip } from "../domain/Clip";
 import type { Video } from "../domain/Video";
 
+// A slider spans the whole video, so on a 40-minute one a pixel is ~8 seconds.
+// These give the precision the slider physically cannot.
+const NUDGES = [-1, -0.1, 0.1, 1] as const;
+
+function NudgeButtons({
+  onNudge,
+  disabled,
+}: {
+  onNudge: (delta: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-1">
+      {NUDGES.map((d) => (
+        <button
+          key={d}
+          type="button"
+          onClick={() => onNudge(d)}
+          disabled={disabled}
+          className="px-1.5 py-0.5 rounded text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+        >
+          {d > 0 ? `+${d}` : `${d}`}s
+        </button>
+      ))}
+    </span>
+  );
+}
+
 /**
  * Clips of one video, plus an inline creator that drives the *shared* player
  * at the top of the page (so a video page never runs two players at once).
@@ -46,6 +74,26 @@ export default function ClipList({
     setTitle("");
     setError("");
     setCreating(true);
+  }
+
+  // Until YouTube reports the real duration the slider range is meaningless,
+  // so the sliders stay disabled rather than silently spanning one second.
+  const ready = duration > 0;
+  const maxT = duration || Math.max(end, start, 1) + 60;
+
+  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+  /** Moves the in-point and shows that frame, so you pick by eye rather than guess. */
+  function applyStart(v: number) {
+    const next = clamp(v, 0, Math.max(0, end - 0.1));
+    setStart(next);
+    player.current?.seekTo(next);
+  }
+
+  function applyEnd(v: number) {
+    const next = clamp(v, start + 0.1, maxT);
+    setEnd(next);
+    player.current?.seekTo(next);
   }
 
   async function save() {
@@ -98,49 +146,71 @@ export default function ClipList({
             {dict.study.segment}
             <span className="ml-auto font-mono text-indigo-600 dark:text-indigo-400">
               {formatClock(start)} – {formatClock(end)}
+              <span className="ml-2 text-slate-400 dark:text-slate-500">
+                ({(end - start).toFixed(1)}s)
+              </span>
             </span>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setStart(Math.min(player.current?.getCurrentTime() ?? 0, end))}
+              onClick={() => applyStart(player.current?.getCurrentTime() ?? 0)}
               className="btn-ghost border border-slate-200 dark:border-slate-700 flex-1"
             >
               {dict.study.setIn}
             </button>
             <button
-              onClick={() => setEnd(Math.max(player.current?.getCurrentTime() ?? 0, start))}
+              onClick={() => applyEnd(player.current?.getCurrentTime() ?? 0)}
               className="btn-ghost border border-slate-200 dark:border-slate-700 flex-1"
             >
               {dict.study.setOut}
             </button>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs text-slate-400">
-              {fmt(dict.study.startLabel, { t: formatClock(start) })}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={duration || 1}
-              step={0.1}
-              value={start}
-              onChange={(e) => setStart(Math.min(Number(e.target.value), end))}
-              className="w-full accent-indigo-600"
-            />
-            <label className="text-xs text-slate-400">
-              {fmt(dict.study.endLabel, { t: formatClock(end) })}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={duration || 1}
-              step={0.1}
-              value={end}
-              onChange={(e) => setEnd(Math.max(Number(e.target.value), start))}
-              className="w-full accent-indigo-600"
-            />
+          {!ready && <p className="text-xs text-slate-400">{dict.common.loading}</p>}
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-400">
+                  {fmt(dict.study.startLabel, { t: formatClock(start) })}
+                </label>
+                <span className="ml-auto">
+                  <NudgeButtons onNudge={(d) => applyStart(start + d)} disabled={!ready} />
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={maxT}
+                step={0.1}
+                value={start}
+                disabled={!ready}
+                onChange={(e) => applyStart(Number(e.target.value))}
+                className="w-full accent-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-400">
+                  {fmt(dict.study.endLabel, { t: formatClock(end) })}
+                </label>
+                <span className="ml-auto">
+                  <NudgeButtons onNudge={(d) => applyEnd(end + d)} disabled={!ready} />
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={maxT}
+                step={0.1}
+                value={end}
+                disabled={!ready}
+                onChange={(e) => applyEnd(Number(e.target.value))}
+                className="w-full accent-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              />
+            </div>
           </div>
 
           <button

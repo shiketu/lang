@@ -59,6 +59,12 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
   // Latest segment, read inside the poll loop without re-subscribing.
   const seg = useRef({ start, end, loop });
   seg.current = { start, end, loop };
+  // Latest callbacks, so the [videoId]-only effect never calls a stale one.
+  const cb = useRef({ onReady, onDuration });
+  cb.current = { onReady, onDuration };
+  // getDuration() returns 0 until YouTube has the video's metadata, which is
+  // usually *after* onReady — so keep asking in the poll loop until it answers.
+  const durationReported = useRef(false);
 
   useImperativeHandle(ref, () => ({
     seekTo: (s) => playerRef.current?.seekTo?.(s, true),
@@ -71,6 +77,7 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
 
   useEffect(() => {
     let cancelled = false;
+    durationReported.current = false;
     const container = containerRef.current;
     // YT replaces the element it's given with an <iframe>, which conflicts with
     // React's DOM ownership — so mount it on a throwaway child div instead.
@@ -93,9 +100,13 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
         },
         events: {
           onReady: () => {
-            onReady?.();
+            cb.current.onReady?.();
+            // Fast path; the poll loop below covers the (common) 0 case.
             const d = playerRef.current?.getDuration?.();
-            if (d) onDuration?.(d);
+            if (d > 0) {
+              durationReported.current = true;
+              cb.current.onDuration?.(d);
+            }
           },
         },
       });
@@ -104,6 +115,16 @@ const YouTubePlayer = forwardRef<YouTubeHandle, Props>(function YouTubePlayer(
     timerRef.current = window.setInterval(() => {
       const p = playerRef.current;
       if (!p?.getCurrentTime) return;
+
+      // Report the duration as soon as YouTube knows it (see durationReported).
+      if (!durationReported.current) {
+        const d = p.getDuration?.() ?? 0;
+        if (d > 0) {
+          durationReported.current = true;
+          cb.current.onDuration?.(d);
+        }
+      }
+
       const { start: s, end: e, loop: l } = seg.current;
       if (l && e != null && s != null) {
         const t = p.getCurrentTime();
